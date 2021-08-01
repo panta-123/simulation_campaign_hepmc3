@@ -90,7 +90,9 @@ export JUGGLER_DETECTOR=athena
 export DETECTOR_PATH="${GEOM_ROOT}/share/athena"
 /usr/bin/time -v \
 xenv -x /usr/local/Juggler.xenv \
-  gaudirun.py /opt/benchmarks/reconstruction_benchmarks/benchmarks/full/options/full_reconstruction.py
+  gaudirun.py /opt/benchmarks/reconstruction_benchmarks/benchmarks/full/options/full_reconstruction.py \
+    || [ $? -eq 4 ]
+# FIXME why $? = 4
 rootls -t "${RECO_FILE}"
 
 # Data egress if config.json in $PWD

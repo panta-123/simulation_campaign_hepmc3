@@ -42,31 +42,33 @@ mkdir -p  ${BASEDIR}/RECO/${TAG}
 RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${MINIOS3}/RECO/${TAG}/${BASENAME}${TASK}.root
 
-# Load environment
-source /opt/detector/setup.sh
-
 # Detector description
 COMPACT_FILE=/opt/detector/share/athena/athena.xml
 
-# Run simulation
-/usr/bin/time -v \
-npsim \
-      --runType batch \
-      --printLevel WARNING \
-      --skipNEvents ${SKIP_N_EVENTS} \
-      --numberOfEvents ${EVENTS_PER_TASK} \
-      --part.minimalKineticEnergy 1*TeV \
-      --compactFile ${COMPACT_FILE} \
-      --inputFiles ${INPUT_FILE} \
-      --outputFile ${FULL_FILE}
-rootls -t "${FULL_FILE}"
+# Check for existing full simulation on local node
+if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
+  # Load container environment
+  source /opt/detector/setup.sh
 
-# Take snapshot of geometry and versions
-mkdir -p ${GEOM_ROOT}
-cp -r /opt/detector/* ${GEOM_ROOT}
-eic-info > ${GEOM_ROOT}/eic-info.txt
-echo -n "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$" > ${GEOM_ROOT}/setup.sh
-echo "LD_LIBRARY_PATH" >> ${GEOM_ROOT}/setup.sh
+  # Run simulation
+  /usr/bin/time -v \
+    npsim \
+    --runType batch \
+    --printLevel WARNING \
+    --skipNEvents ${SKIP_N_EVENTS} \
+    --numberOfEvents ${EVENTS_PER_TASK} \
+    --part.minimalKineticEnergy 1*TeV \
+    --compactFile ${COMPACT_FILE} \
+    --inputFiles ${INPUT_FILE} \
+    --outputFile ${FULL_FILE}
+  rootls -t "${FULL_FILE}"
+
+  # Take snapshot of geometry and versions
+  mkdir -p ${GEOM_ROOT}
+  cp -r /opt/detector/* ${GEOM_ROOT}
+  eic-info > ${GEOM_ROOT}/eic-info.txt
+  echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh
+fi
 
 # Data egress if config.json in $PWD
 if [ -x /usr/local/bin/mc -a -f ./config.json ] ; then
@@ -77,8 +79,10 @@ if [ -x /usr/local/bin/mc -a -f ./config.json ] ; then
   fi
 fi
 
-# Run reconstruction
+# Load snapshot environment
 source ${GEOM_ROOT}/setup.sh
+
+# Run reconstruction
 export JUGGLER_SIM_FILE="${FULL_FILE}"
 export JUGGLER_REC_FILE="${RECO_FILE}"
 export JUGGLER_N_EVENTS=2147483647

@@ -1,4 +1,4 @@
-#!/bin/bash
+EVGEN/SIDIS/Lambda/hepmc_P8test.hepmc#!/bin/bash
 set -Euo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 IFS=$'\n\t'
@@ -37,21 +37,63 @@ fi
 
 # Output location
 BASEDIR=${DATADIR:-${PWD}}
-MINIOS3="S3rw/eictest/ATHENA"
+
+# S3 locations
+MC="/usr/local/bin/mc"
+S3URL="https://dtn01.sdcc.bnl.gov:9000"
+S3RO="S3"
+S3RW="S3rw"
+S3RODIR="${S3RO}/eictest/ATHENA"
+S3RWDIR="${S3RW}/eictest/ATHENA"
 
 # Input file parsing
 BASENAME=$(basename ${INPUT_FILE} .hepmc)
-INPUT_DIR=$(dirname $(realpath --relative-to=${BASEDIR} ${INPUT_FILE}))
+INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))/
+# - file.hepmc              -> TAG="", and avoid double // in S3 location
+# - EVGEN/file.hepmc        -> TAG="", and avoid double // in S3 location
+# - EVGEN/DIS/file.hepmc    -> TAG="DIS"
+# - EVGEN/DIS/NC/file.hepmc -> TAG="DIS/NC"
+# - ../file.hepmc           -> error
+if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
+  echo "Error: Input file must be below current directory."
+  exit
+fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
+mkdir -p   ${BASEDIR}/EVGEN/${TAG}
+INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
+INPUT_S3RO=${INPUT_S3RO//\/\//\/}
+
+# Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
+if [ ! -f ${INPUT_FILE} ] ; then
+  if [ -x ${MC} ] ; then
+    if ping -c 1 -w 5 google.com > /dev/null ; then
+      if [ -n ${S3_ACCESS_KEY} -a -n ${S3_SECRET_KEY} ] ; then
+        ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
+        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}" "${INPUT_FILE}"
+        ${MC} -C . config host remove ${S3RO}
+      else
+        echo "No S3 credentials. Provide (readonly) S3 credentials."
+        exit
+      fi
+    else
+      echo "No internet connection. Pre-cache input file."
+      exit
+    fi
+  fi
+fi
+
+# Output file names
 mkdir -p  ${BASEDIR}/FULL/${TAG}
 FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${MINIOS3}/FULL/${TAG}/${BASENAME}${TASK}.root
+FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
+FULL_S3RW=${FULL_S3RW//\/\//\/}
 mkdir -p  ${BASEDIR}/GEOM/${TAG}
 GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
 mkdir -p  ${BASEDIR}/RECO/${TAG}
 RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-RECO_S3RW=${MINIOS3}/RECO/${TAG}/${BASENAME}${TASK}.root
+RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
+RECO_S3RW=${RECO_S3RW//\/\//\/}
 
 # Detector description
 COMPACT_FILE=/opt/detector/share/athena/athena.xml
@@ -81,12 +123,12 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
   echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh
 
   # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-  if [ -x /usr/local/bin/mc ] ; then
+  if [ -x ${MC} ] ; then
     if ping -c 1 -w 5 google.com > /dev/null ; then
       if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
-        /usr/local/bin/mc -C . config host add S3rw https://dtn01.sdcc.bnl.gov:9000 ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        /usr/local/bin/mc -C . cp "${FULL_FILE}" "${FULL_S3RW}"
-        /usr/local/bin/mc -C . config host remove S3rw 
+        ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+        ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"
+        ${MC} -C . config host remove ${S3RW}
       else
         echo "No S3 credentials."
       fi
@@ -113,12 +155,12 @@ xenv -x /usr/local/Juggler.xenv \
 rootls -t "${RECO_FILE}"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-if [ -x /usr/local/bin/mc ] ; then
+if [ -x ${MC} ] ; then
   if ping -c 1 -w 5 google.com > /dev/null ; then
     if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
-      /usr/local/bin/mc -C . config host add S3rw https://dtn01.sdcc.bnl.gov:9000 ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      /usr/local/bin/mc -C . cp "${RECO_FILE}" "${RECO_S3RW}"
-      /usr/local/bin/mc -C . config host remove S3rw 
+      ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+      ${MC} -C . cp --disable-multipart "${RECO_FILE}" "${RECO_S3RW}"
+      ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
     fi

@@ -68,14 +68,20 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
   cp -r /opt/detector/* ${GEOM_ROOT}
   eic-info > ${GEOM_ROOT}/eic-info.txt
   echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh
-fi
 
-# Data egress if config.json in $PWD
-if [ -x /usr/local/bin/mc -a -f ./config.json ] ; then
-  if ping -c 1 -w 5 google.com > /dev/null ; then
-    /usr/local/bin/mc -C ./config.json cp "${FULL_FILE}" "${FULL_S3RW}"
-  else
-    echo "No internet connection."
+  # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
+  if [ -x /usr/local/bin/mc ] ; then
+    if ping -c 1 -w 5 google.com > /dev/null ; then
+      if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
+        /usr/local/bin/mc -C . config host add S3rw https://dtn01.sdcc.bnl.gov:9000 ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+        /usr/local/bin/mc -C . cp "${FULL_FILE}" "${FULL_S3RW}"
+        /usr/local/bin/mc -C . config host remove S3rw 
+      else
+        echo "No S3 credentials."
+      fi
+    else
+      echo "No internet connection."
+    fi
   fi
 fi
 
@@ -95,10 +101,16 @@ xenv -x /usr/local/Juggler.xenv \
 # FIXME why $? = 4
 rootls -t "${RECO_FILE}"
 
-# Data egress if config.json in $PWD
-if [ -x /usr/local/bin/mc -a -f ./config.json ] ; then
+# Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
+if [ -x /usr/local/bin/mc ] ; then
   if ping -c 1 -w 5 google.com > /dev/null ; then
-    /usr/local/bin/mc -C ./config.json cp "${RECO_FILE}" "${RECO_S3RW}"
+    if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
+      /usr/local/bin/mc -C . config host add S3rw https://dtn01.sdcc.bnl.gov:9000 ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+      /usr/local/bin/mc -C . cp "${RECO_FILE}" "${RECO_S3RW}"
+      /usr/local/bin/mc -C . config host remove S3rw 
+    else
+      echo "No S3 credentials."
+    fi
   else
     echo "No internet connection."
   fi

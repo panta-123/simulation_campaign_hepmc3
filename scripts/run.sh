@@ -3,6 +3,17 @@ set -Euo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 IFS=$'\n\t'
 
+# Check arguments
+if [ $# -lt 1 ] ; then
+  echo "Usage: "
+  echo "  $0 <input> [n_chunk=10000] [i_chunk=]"
+  echo
+  echo "A typical npsim run requires from 0.5 to 5 core-seconds per event,"
+  echo "and uses under 3 GB of memory. The output ROOT file for"
+  echo "10k events take up about 2 GB in disk space."
+  exit
+fi
+
 # Startup
 date
 hostname

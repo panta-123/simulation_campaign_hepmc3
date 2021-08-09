@@ -1,4 +1,4 @@
-EVGEN/SIDIS/Lambda/hepmc_P8test.hepmc#!/bin/bash
+#!/bin/bash
 set -Euo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 IFS=$'\n\t'

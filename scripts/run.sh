@@ -86,8 +86,6 @@ fi
 # Output file names
 mkdir -p  ${BASEDIR}/FULL/${TAG}
 FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${FULL_S3RW//\/\//\/}
 mkdir -p  ${BASEDIR}/GEOM/${TAG}
 GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
 mkdir -p  ${BASEDIR}/RECO/${TAG}
@@ -121,21 +119,6 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
   cp -r /opt/detector/* ${GEOM_ROOT}
   eic-info > ${GEOM_ROOT}/eic-info.txt
   echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh
-
-  # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-  if [ -x ${MC} ] ; then
-    if ping -c 1 -w 5 google.com > /dev/null ; then
-      if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
-        ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"
-        ${MC} -C . config host remove ${S3RW}
-      else
-        echo "No S3 credentials."
-      fi
-    else
-      echo "No internet connection."
-    fi
-  fi
 fi
 
 # Load snapshot environment

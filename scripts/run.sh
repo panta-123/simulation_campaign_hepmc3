@@ -59,7 +59,7 @@ if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
   exit
 fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
-TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
+TAG=${DETECTOR_VERSION}/${INPUT_DIR/${INPUT_PREFIX}\//}
 mkdir -p   ${BASEDIR}/EVGEN/${TAG}
 INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
 INPUT_S3RO=${INPUT_S3RO//\/\//\/}

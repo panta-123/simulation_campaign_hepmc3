@@ -21,6 +21,10 @@ whoami
 pwd
 ls -al
 
+# Load container environment (include ${DETECTOR_VERSION})
+source /opt/detector/setup.sh
+echo "DETECTOR_VERSION=${DETECTOR_VERSION}"
+
 # Argument parsing
 # - input file
 INPUT_FILE=${1}
@@ -59,10 +63,11 @@ if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
   exit
 fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
-TAG=${DETECTOR_VERSION}/${INPUT_DIR/${INPUT_PREFIX}\//}
+TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 mkdir -p   ${BASEDIR}/EVGEN/${TAG}
 INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
 INPUT_S3RO=${INPUT_S3RO//\/\//\/}
+TAG=${DETECTOR_VERSION}/${TAG}
 
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
@@ -98,9 +103,6 @@ COMPACT_FILE=/opt/detector/share/athena/athena.xml
 
 # Check for existing full simulation on local node
 if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
-  # Load container environment
-  source /opt/detector/setup.sh
-
   # Run simulation
   /usr/bin/time -v \
     npsim \

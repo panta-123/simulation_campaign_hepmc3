@@ -111,6 +111,7 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
     --skipNEvents ${SKIP_N_EVENTS} \
     --numberOfEvents ${EVENTS_PER_TASK} \
     --part.minimalKineticEnergy 1*TeV \
+    --hepmc3.useHepMC3 false \
     --compactFile ${COMPACT_FILE} \
     --inputFiles ${INPUT_FILE} \
     --outputFile ${FULL_FILE}

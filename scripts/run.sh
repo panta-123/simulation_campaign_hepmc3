@@ -134,8 +134,7 @@ export JUGGLER_N_EVENTS=2147483647
 export JUGGLER_DETECTOR=athena
 export DETECTOR_PATH="${GEOM_ROOT}/share/athena"
 /usr/bin/time -v \
-xenv -x /usr/local/Juggler.xenv \
-  gaudirun.py /opt/benchmarks/reconstruction_benchmarks/benchmarks/full/options/full_reconstruction.py \
+  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py \
     || [ $? -eq 4 ]
 # FIXME why $? = 4
 rootls -t "${RECO_FILE}"

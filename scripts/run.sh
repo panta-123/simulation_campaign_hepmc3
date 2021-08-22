@@ -64,7 +64,7 @@ if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
 fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
-test -d ${BASEDIR}/EVGEN/${TAG} || mkdir -p ${BASEDIR}/EVGEN/${TAG}
+mkdir -p   ${BASEDIR}/EVGEN/${TAG}
 INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
 INPUT_S3RO=${INPUT_S3RO//\/\//\/}
 TAG=${DETECTOR_VERSION}/${TAG}
@@ -89,11 +89,11 @@ if [ ! -f ${INPUT_FILE} ] ; then
 fi
 
 # Output file names
-test -d ${BASEDIR}/FULL/${TAG} || mkdir -p ${BASEDIR}/FULL/${TAG}
+mkdir -p  ${BASEDIR}/FULL/${TAG}
 FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-test -d ${BASEDIR}/GEOM/${TAG} || mkdir -p ${BASEDIR}/GEOM/${TAG}
+mkdir -p  ${BASEDIR}/GEOM/${TAG}
 GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
-test -d ${BASEDIR}/RECO/${TAG} || mkdir -p ${BASEDIR}/RECO/${TAG}
+mkdir -p  ${BASEDIR}/RECO/${TAG}
 RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${RECO_S3RW//\/\//\/}
@@ -118,7 +118,7 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
   rootls -t "${FULL_FILE}"
 
   # Take snapshot of geometry and versions
-  test -d ${GEOM_ROOT} || mkdir -p ${GEOM_ROOT}
+  mkdir -p ${GEOM_ROOT}
   cp -r /opt/detector/* ${GEOM_ROOT}
   eic-info > ${GEOM_ROOT}/eic-info.txt
   echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh

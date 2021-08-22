@@ -89,6 +89,8 @@ if [ ! -f ${INPUT_FILE} ] ; then
 fi
 
 # Output file names
+mkdir -p ${BASEDIR}/LOG/${TAG}
+LOG_FILE=${BASEDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
 mkdir -p  ${BASEDIR}/FULL/${TAG}
 FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
 mkdir -p  ${BASEDIR}/GEOM/${TAG}
@@ -97,6 +99,10 @@ mkdir -p  ${BASEDIR}/RECO/${TAG}
 RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${RECO_S3RW//\/\//\/}
+
+# Log to file
+exec >> ${LOG_FILE}
+exec 2>&1
 
 # Detector description
 COMPACT_FILE=/opt/detector/share/athena/athena.xml
@@ -145,6 +151,7 @@ if [ -x ${MC} ] ; then
     if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . cp --disable-multipart "${RECO_FILE}" "${RECO_S3RW}"
+      ${MC} -C . cp --disable-multipart "${LOG_FILE}" "${LOG_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -157,4 +164,5 @@ fi
 # closeout
 ls -al ${FULL_FILE}
 ls -al ${RECO_FILE}
+ls -al ${LOG_FILE}
 date

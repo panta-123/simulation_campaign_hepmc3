@@ -69,6 +69,26 @@ INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
 INPUT_S3RO=${INPUT_S3RO//\/\//\/}
 TAG=${DETECTOR_VERSION}/${TAG}
 
+# Output file names
+mkdir -p ${BASEDIR}/LOG/${TAG}
+LOG_FILE=${BASEDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
+mkdir -p  ${BASEDIR}/FULL/${TAG}
+FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
+FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
+FULL_S3RW=${FULL_S3RW//\/\//\/}
+mkdir -p  ${BASEDIR}/GEOM/${TAG}
+GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
+mkdir -p  ${BASEDIR}/RECO/${TAG}
+RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
+RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
+RECO_S3RW=${RECO_S3RW//\/\//\/}
+
+# Detector description
+COMPACT_FILE=/opt/detector/share/athena/athena.xml
+
+# Start logging block
+{
+
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
   if [ -x ${MC} ] ; then
@@ -87,27 +107,6 @@ if [ ! -f ${INPUT_FILE} ] ; then
     fi
   fi
 fi
-
-# Output file names
-mkdir -p ${BASEDIR}/LOG/${TAG}
-LOG_FILE=${BASEDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
-mkdir -p  ${BASEDIR}/FULL/${TAG}
-FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${FULL_S3RW//\/\//\/}
-mkdir -p  ${BASEDIR}/GEOM/${TAG}
-GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
-mkdir -p  ${BASEDIR}/RECO/${TAG}
-RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-RECO_S3RW=${RECO_S3RW//\/\//\/}
-
-# Log to file
-exec >> ${LOG_FILE}
-exec 2>&1
-
-# Detector description
-COMPACT_FILE=/opt/detector/share/athena/athena.xml
 
 # Check for existing full simulation on local node
 if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
@@ -180,6 +179,8 @@ if [ -x ${MC} ] ; then
     echo "No internet connection."
   fi
 fi
+
+} 2>&1 | tee ${LOG_FILE}
 
 # closeout
 ls -al ${FULL_FILE}

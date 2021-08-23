@@ -159,10 +159,10 @@ export JUGGLER_N_EVENTS=2147483647
 export JUGGLER_DETECTOR=athena
 export DETECTOR_PATH="${GEOM_ROOT}/share/athena"
 /usr/bin/time -v \
-  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py \
-    || [ $? -eq 4 ]
-# FIXME why $? = 4
+  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py
 rootls -t "${RECO_FILE}"
+
+} 2>&1 | tee ${LOG_FILE}
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
@@ -179,8 +179,6 @@ if [ -x ${MC} ] ; then
     echo "No internet connection."
   fi
 fi
-
-} 2>&1 | tee ${LOG_FILE}
 
 # closeout
 ls -al ${FULL_FILE}

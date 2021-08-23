@@ -76,8 +76,6 @@ mkdir -p  ${BASEDIR}/FULL/${TAG}
 FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
 FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
 FULL_S3RW=${FULL_S3RW//\/\//\/}
-mkdir -p  ${BASEDIR}/GEOM/${TAG}
-GEOM_ROOT=${BASEDIR}/GEOM/${TAG}/${BASENAME}${TASK}.geom
 mkdir -p  ${BASEDIR}/RECO/${TAG}
 RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
@@ -109,7 +107,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
 fi
 
 # Check for existing full simulation on local node
-if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
+if [ ! -f ${FULL_FILE} ] ; then
   # Run simulation
   /usr/bin/time -v \
     npsim \
@@ -119,16 +117,10 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
     --numberOfEvents ${EVENTS_PER_TASK} \
     --part.minimalKineticEnergy 1*TeV \
     --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
-    --compactFile ${COMPACT_FILE} \
+    --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
     --inputFiles ${INPUT_FILE} \
     --outputFile ${FULL_FILE}
   rootls -t "${FULL_FILE}"
-
-  # Take snapshot of geometry and versions
-  mkdir -p ${GEOM_ROOT}
-  cp -r /opt/detector/* ${GEOM_ROOT}
-  eic-info > ${GEOM_ROOT}/eic-info.txt
-  echo "export LD_LIBRARY_PATH=${GEOM_ROOT}/lib:$LD_LIBRARY_PATH" > ${GEOM_ROOT}/setup.sh
 
   # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
   if [ -x ${MC} ] ; then
@@ -146,9 +138,6 @@ if [ ! -f ${FULL_FILE} -o ! -d ${GEOM_ROOT} ] ; then
   fi
 fi
 
-# Load snapshot environment
-source ${GEOM_ROOT}/setup.sh
-
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
 ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
 
@@ -156,8 +145,6 @@ ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/bin/get_calibration
 export JUGGLER_SIM_FILE="${FULL_FILE}"
 export JUGGLER_REC_FILE="${RECO_FILE}"
 export JUGGLER_N_EVENTS=2147483647
-export JUGGLER_DETECTOR=athena
-export DETECTOR_PATH="${GEOM_ROOT}/share/athena"
 /usr/bin/time -v \
   gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py \
   || [ $? -eq 4 ]

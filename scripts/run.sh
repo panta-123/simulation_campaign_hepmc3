@@ -81,9 +81,6 @@ RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${RECO_S3RW//\/\//\/}
 
-# Detector description
-COMPACT_FILE=/opt/detector/share/athena/athena.xml
-
 # Start logging block
 {
 
@@ -124,7 +121,7 @@ if [ ! -f ${FULL_FILE} ] ; then
 
   # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
   if [ -x ${MC} ] ; then
-    if ping -c 1 -w 5 google.com > /dev/null ; then
+    if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
       if [ -n ${S3RW_ACCESS_KEY} -a -n ${S3RW_SECRET_KEY} ] ; then
         ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
         ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"

@@ -105,40 +105,39 @@ if [ ! -f ${INPUT_FILE} ] ; then
   fi
 fi
 
-# Check for existing full simulation on local node
-if [ ! -f ${FULL_FILE} ] ; then
-  # Run simulation
-  /usr/bin/time -v \
-    npsim \
-    --runType batch \
-    --printLevel WARNING \
-    --skipNEvents ${SKIP_N_EVENTS} \
-    --numberOfEvents ${EVENTS_PER_TASK} \
-    --part.minimalKineticEnergy 1*TeV \
-    --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
-    --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
-    --inputFiles ${INPUT_FILE} \
-    --outputFile ${FULL_FILE}
-  rootls -t "${FULL_FILE}"
+# Run simulation
+/usr/bin/time -v \
+  npsim \
+  --runType batch \
+  --printLevel WARNING \
+  --skipNEvents ${SKIP_N_EVENTS} \
+  --numberOfEvents ${EVENTS_PER_TASK} \
+  --part.minimalKineticEnergy 1*TeV \
+  --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
+  --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
+  --inputFiles ${INPUT_FILE} \
+  --outputFile ${FULL_FILE}
+rootls -t "${FULL_FILE}"
 
-  # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-  if [ -x ${MC} ] ; then
-    if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
-      if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-        ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"
-        ${MC} -C . config host remove ${S3RW}
-      else
-        echo "No S3 credentials."
-      fi
+# Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
+if [ -x ${MC} ] ; then
+  if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
+    if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
+      ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+      ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"
+      ${MC} -C . config host remove ${S3RW}
     else
-      echo "No internet connection."
+      echo "No S3 credentials."
     fi
+  else
+    echo "No internet connection."
   fi
 fi
 
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
-${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
+if [ ! -d config ] ; then
+  ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
+fi
 
 # Run reconstruction
 export JUGGLER_SIM_FILE="${FULL_FILE}"
@@ -173,3 +172,6 @@ ls -al ${FULL_FILE}
 ls -al ${RECO_FILE}
 ls -al ${LOG_FILE}
 date
+
+# remove full file
+rm ${FULL_FILE}

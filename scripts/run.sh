@@ -136,7 +136,7 @@ fi
 
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
 if [ ! -d config ] ; then
-  ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
+  ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
 fi
 
 # Run reconstruction
@@ -144,7 +144,7 @@ export JUGGLER_SIM_FILE="${FULL_FILE}"
 export JUGGLER_REC_FILE="${RECO_FILE}"
 export JUGGLER_N_EVENTS=2147483647
 /usr/bin/time -v \
-  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py \
+  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks}/options/reconstruction.py \
   || [ $? -eq 4 ]
 # FIXME why $? = 4
 rootls -t "${RECO_FILE}"

@@ -83,6 +83,22 @@ RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${RECO_S3RW//\/\//\/}
 
+# Local temp dir
+if [ test -n "${SLURM_TMPDIR:-}" ] ; then
+  TMPDIR=${SLURM_TMPDIR}
+else
+  if [ test -d "/scratch/slurm/${SLURM_JOB_ID:-}" ] ; then
+    TMPDIR="/scratch/slurm/${SLURM_JOB_ID:-}"
+  else
+    TMPDIR=${TMPDIR:-/tmp}/${$}
+  fi
+fi
+mkdir -p ${TMPDIR}/EVGEN/${TAG}/ ${TMPDIR}/FULL/${TAG}/ ${TMPDIR}/RECO/${TAG}/ ${TMPDIR}/LOG/${TAG}/
+INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
+FULL_TEMP=${TMPDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
+RECO_TEMP=${TMPDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
+LOG_TEMP=${TMPDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
+
 # Start logging block
 {
 
@@ -106,6 +122,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
 fi
 
 # Run simulation
+cp "${INPUT_FILE}" "${INPUT_TEMP}"
 /usr/bin/time -v \
   npsim \
   --runType batch \
@@ -115,9 +132,10 @@ fi
   --part.minimalKineticEnergy 1*TeV \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
-  --inputFiles ${INPUT_FILE} \
-  --outputFile ${FULL_FILE}
-rootls -t "${FULL_FILE}"
+  --inputFiles "${INPUT_TEMP}" \
+  --outputFile "${FULL_TEMP}"
+rootls -t "${FULL_TEMP}"
+cp "${FULL_TEMP}" "${FULL_FILE}"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
@@ -140,16 +158,18 @@ if [ ! -d config ] ; then
 fi
 
 # Run reconstruction
-export JUGGLER_SIM_FILE="${FULL_FILE}"
-export JUGGLER_REC_FILE="${RECO_FILE}"
+export JUGGLER_SIM_FILE="${FULL_TEMP}"
+export JUGGLER_REC_FILE="${RECO_TEMP}"
 export JUGGLER_N_EVENTS=2147483647
 /usr/bin/time -v \
   gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/reconstruction_benchmarks}/benchmarks/full/options/full_reconstruction.py \
   || [ $? -eq 4 ]
 # FIXME why $? = 4
-rootls -t "${RECO_FILE}"
+rootls -t "${RECO_TEMP}"
+cp "${RECO_TEMP}" "${RECO_FILE}"
 
-} 2>&1 | tee ${LOG_FILE}
+} 2>&1 | tee "${LOG_TEMP}"
+cp "${LOG_TEMP}" "${LOG_FILE}"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
@@ -168,10 +188,10 @@ if [ -x ${MC} ] ; then
 fi
 
 # closeout
-ls -al ${FULL_FILE}
-ls -al ${RECO_FILE}
-ls -al ${LOG_FILE}
+rm -f "${INPUT_TEMP}"
+rm -f "${FULL_TEMP}"
+rm -f "${RECO_TEMP}"
+ls -al "${FULL_FILE}"
+ls -al "${RECO_FILE}"
+ls -al "${LOG_FILE}"
 date
-
-# remove full file
-rm ${FULL_FILE}

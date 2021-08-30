@@ -93,6 +93,7 @@ else
     TMPDIR=${TMPDIR:-/tmp}/${$}
   fi
 fi
+echo "TMPDIR=${TMPDIR}"
 mkdir -p ${TMPDIR}/EVGEN/${TAG}/ ${TMPDIR}/FULL/${TAG}/ ${TMPDIR}/RECO/${TAG}/ ${TMPDIR}/LOG/${TAG}/
 INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
 FULL_TEMP=${TMPDIR}/FULL/${TAG}/${BASENAME}${TASK}.root

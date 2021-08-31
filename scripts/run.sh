@@ -98,10 +98,13 @@ else
   fi
 fi
 echo "TMPDIR=${TMPDIR}"
-mkdir -p ${TMPDIR}/EVGEN/${TAG}/ ${TMPDIR}/FULL/${TAG}/ ${TMPDIR}/RECO/${TAG}/ ${TMPDIR}/LOG/${TAG}/
+mkdir -p   ${TMPDIR}/EVGEN/${TAG}/
 INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
+mkdir -p  ${TMPDIR}/FULL/${TAG}/
 FULL_TEMP=${TMPDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
+mkdir -p  ${TMPDIR}/RECO/${TAG}/
 RECO_TEMP=${TMPDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
+mkdir -p ${TMPDIR}/LOG/${TAG}/
 LOG_TEMP=${TMPDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
 
 # Start logging block
@@ -127,7 +130,9 @@ if [ ! -f ${INPUT_FILE} ] ; then
 fi
 
 # Run simulation
-cp "${INPUT_FILE}" "${INPUT_TEMP}"
+if [ ! -f "${INPUT_TEMP}" ] ; then
+  cp "${INPUT_FILE}" "${INPUT_TEMP}"
+fi
 /usr/bin/time -v \
   npsim \
   --runType batch \
@@ -175,7 +180,7 @@ export JUGGLER_N_EVENTS=2147483647
 rootls -t "${RECO_TEMP}"
 cp "${RECO_TEMP}" "${RECO_FILE}"
 
-} 2>&1 | tee "${LOG_TEMP}"
+} 2>&1 > "${LOG_TEMP}"
 cp "${LOG_TEMP}" "${LOG_FILE}"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment

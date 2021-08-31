@@ -90,7 +90,6 @@ else
   echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
   echo "SLURM_ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-}"
   echo "SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID:-}"
-  ls -al /scratch/slurm
   if [ -d "/scratch/slurm/${SLURM_JOB_ID:-}" ] ; then
     TMPDIR="/scratch/slurm/${SLURM_JOB_ID:-}"
   else

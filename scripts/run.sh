@@ -127,7 +127,7 @@ cp "${INPUT_FILE}" "${INPUT_TEMP}"
 /usr/bin/time -v \
   npsim \
   --runType batch \
-  --random.seed 0 \
+  --random.seed 1 \
   --random.enableEventSeed \
   --printLevel WARNING \
   --skipNEvents ${SKIP_N_EVENTS} \

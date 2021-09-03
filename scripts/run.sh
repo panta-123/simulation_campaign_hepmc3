@@ -146,14 +146,16 @@ fi
   --inputFiles "${INPUT_TEMP}" \
   --outputFile "${FULL_TEMP}"
 rootls -t "${FULL_TEMP}"
-cp "${FULL_TEMP}" "${FULL_FILE}"
+if [ -n "${COPYTEMP:-}" ] ; then
+  cp "${FULL_TEMP}" "${FULL_FILE}"
+fi
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${FULL_FILE}" "${FULL_S3RW}"
+      ${MC} -C . cp --disable-multipart "${FULL_TEMP}" "${FULL_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -177,18 +179,22 @@ export JUGGLER_N_EVENTS=2147483647
   || [ $? -eq 4 ]
 # FIXME why $? = 4
 rootls -t "${RECO_TEMP}"
-cp "${RECO_TEMP}" "${RECO_FILE}"
+if [ -n "${COPYTEMP:-}" ] ; then
+  cp "${RECO_TEMP}" "${RECO_FILE}"
+}
 
 } 2>&1 > "${LOG_TEMP}"
-cp "${LOG_TEMP}" "${LOG_FILE}"
+if [ -n "${COPYTEMP:-}" ] ; then
+  cp "${LOG_TEMP}" "${LOG_FILE}"
+}
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${RECO_FILE}" "${RECO_S3RW}"
-      ${MC} -C . cp --disable-multipart "${LOG_FILE}" "${LOG_S3RW}"
+      ${MC} -C . cp --disable-multipart "${RECO_TEMP}" "${RECO_S3RW}"
+      ${MC} -C . cp --disable-multipart "${LOG_TEMP}" "${LOG_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -202,7 +208,9 @@ fi
 rm -f "${INPUT_TEMP}"
 rm -f "${FULL_TEMP}"
 rm -f "${RECO_TEMP}"
-ls -al "${FULL_FILE}"
-ls -al "${RECO_FILE}"
-ls -al "${LOG_FILE}"
+if [ -n "${COPYTEMP:-}" ] ; then
+  ls -al "${FULL_FILE}"
+  ls -al "${RECO_FILE}"
+  ls -al "${LOG_FILE}"
+fi
 date

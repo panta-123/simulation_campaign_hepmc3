@@ -119,11 +119,11 @@ if [ ! -f ${INPUT_FILE} ] ; then
         ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
-        exit
+        exit -1
       fi
     else
       echo "No internet connection. Pre-cache input file."
-      exit
+      exit -1
     fi
   fi
 fi

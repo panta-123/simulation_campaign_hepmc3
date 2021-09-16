@@ -86,6 +86,8 @@ RECO_S3RW=${RECO_S3RW//\/\//\/}
 # Local temp dir
 if [ -n "${SLURM_TMPDIR:-}" ] ; then
   TMPDIR=${SLURM_TMPDIR}
+elif [ -n "${_CONDOR_SCRATCH_DIR:-}" ] ; then
+  TMPDIR=${_CONDOR_SCRATCH_DIR}
 else
   echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
   echo "SLURM_ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-}"

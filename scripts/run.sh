@@ -183,7 +183,7 @@ if [ "${COPYRECO:-false}" == "true" ] ; then
   cp "${RECO_TEMP}" "${RECO_FILE}"
 fi
 
-} 2>&1 > "${LOG_TEMP}"
+} 2>&1 | tee "${LOG_TEMP}"
 if [ "${COPYLOG:-false}" == "true" ] ; then
   cp "${LOG_TEMP}" "${LOG_FILE}"
 fi

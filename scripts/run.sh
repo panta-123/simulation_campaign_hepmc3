@@ -119,7 +119,7 @@ date
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
   if [ -x ${MC} ] ; then
-    if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
+    if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
         ${MC} -C . cp --disable-multipart "${INPUT_S3RO}" "${INPUT_FILE}"
@@ -162,7 +162,7 @@ fi
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
-  if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
+  if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . cp --disable-multipart "${FULL_TEMP}" "${FULL_S3RW}"
@@ -203,7 +203,7 @@ fi
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
-  if curl --connect-timeout 5 ${S3URL} > /dev/null ; then
+  if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . cp --disable-multipart "${RECO_TEMP}" "${RECO_S3RW}"

@@ -6,7 +6,7 @@ run_hepmc3:
     - s3
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
-    - scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
+    - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_0001:
@@ -15,5 +15,5 @@ run_hepmc3_0001:
     - s3
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
-    - scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
+    - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root

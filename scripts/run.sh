@@ -84,14 +84,16 @@ RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
 RECO_S3RW=${RECO_S3RW//\/\//\/}
 
 # Local temp dir
+echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
+echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
+echo "SLURM_ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-}"
+echo "SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID:-}"
+echo "_CONDOR_SCRATCH_DIR=${_CONDOR_SCRATCH_DIR:-}"
 if [ -n "${SLURM_TMPDIR:-}" ] ; then
   TMPDIR=${SLURM_TMPDIR}
 elif [ -n "${_CONDOR_SCRATCH_DIR:-}" ] ; then
   TMPDIR=${_CONDOR_SCRATCH_DIR}
 else
-  echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
-  echo "SLURM_ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-}"
-  echo "SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID:-}"
   if [ -d "/scratch/slurm/${SLURM_JOB_ID:-}" ] ; then
     TMPDIR="/scratch/slurm/${SLURM_JOB_ID:-}"
   else
@@ -110,6 +112,7 @@ LOG_TEMP=${TMPDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
 
 # Start logging block
 {
+date
 
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
@@ -134,6 +137,8 @@ fi
 if [ ! -f "${INPUT_TEMP}" ] ; then
   cp "${INPUT_FILE}" "${INPUT_TEMP}"
 fi
+ls -al "${INPUT_TEMP}"
+date
 /usr/bin/time -v \
   npsim \
   --runType batch \
@@ -147,6 +152,7 @@ fi
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
   --inputFiles "${INPUT_TEMP}" \
   --outputFile "${FULL_TEMP}"
+ls -al "${FULL_TEMP}"
 rootls -t "${FULL_TEMP}"
 if [ "${COPYFULL:-false}" == "true" ] ; then
   cp "${FULL_TEMP}" "${FULL_FILE}"
@@ -173,6 +179,7 @@ if [ ! -d config ] ; then
 fi
 
 # Run reconstruction
+date
 export JUGGLER_SIM_FILE="${FULL_TEMP}"
 export JUGGLER_REC_FILE="${RECO_TEMP}"
 export JUGGLER_N_EVENTS=2147483647
@@ -180,12 +187,14 @@ export JUGGLER_N_EVENTS=2147483647
   gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks}/options/reconstruction.py \
   || [ $? -eq 4 ]
 # FIXME why $? = 4
+ls -al "${RECO_TEMP}"
 rootls -t "${RECO_TEMP}"
 if [ "${COPYRECO:-false}" == "true" ] ; then
   cp "${RECO_TEMP}" "${RECO_FILE}"
 fi
 
 } 2>&1 | tee "${LOG_TEMP}"
+ls -al "${LOG_TEMP}"
 if [ "${COPYLOG:-false}" == "true" ] ; then
   cp "${LOG_TEMP}" "${LOG_FILE}"
 fi

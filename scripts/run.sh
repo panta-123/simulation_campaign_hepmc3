@@ -177,7 +177,7 @@ fi
 
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
 if [ ! -d config ] ; then
-  ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
+  ${CALIBRATION:-/opt/benchmarks/physics_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
 fi
 
 # Run reconstruction

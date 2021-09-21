@@ -186,7 +186,7 @@ export JUGGLER_SIM_FILE="${FULL_TEMP}"
 export JUGGLER_REC_FILE="${RECO_TEMP}"
 export JUGGLER_N_EVENTS=2147483647
 /usr/bin/time -v \
-  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks}/options/reconstruction.py \
+  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options/reconstruction.py} \
   || [ $? -eq 4 ]
 # FIXME why $? = 4
 ls -al "${RECO_TEMP}"

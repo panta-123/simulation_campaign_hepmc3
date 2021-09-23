@@ -19,7 +19,6 @@ date
 hostname
 whoami
 pwd
-printenv
 ls -al
 
 # Load container environment (include ${DETECTOR_VERSION})

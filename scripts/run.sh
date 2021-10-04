@@ -122,7 +122,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
     if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}/${BASENAME}.hepmc" "${INPUT_DIR}"
+        ${MC} -C . cp --disable-multipart ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
         ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
@@ -137,9 +137,9 @@ fi
 
 # Run simulation
 if [ ! -f "${INPUT_TEMP}" ] ; then
-  cp "${INPUT_FILE}" "${INPUT_TEMP}"
+  cp ${INPUT_FILE} ${INPUT_TEMP}
 fi
-ls -al "${INPUT_TEMP}/${BASENAME}.hepmc"
+ls -al ${INPUT_TEMP}/${BASENAME}.hepmc
 date
 /usr/bin/time -v \
   npsim \
@@ -152,17 +152,18 @@ date
   --part.minimalKineticEnergy 1*TeV \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
-  --inputFiles "${INPUT_TEMP}/${BASENAME}.hepmc" \
-  --outputFile "${FULL_TEMP}/${TASKNAME}.root"
-ls -al "${FULL_TEMP}/${TASKNAME}.root"
-rootls -t "${FULL_TEMP}/${TASKNAME}.root"
+  --inputFiles ${INPUT_TEMP}/${BASENAME}.hepmc \
+  --outputFile ${FULL_TEMP}/${TASKNAME}.root
+rm -f ${INPUT_TEMP}/${BASENAME}.hepmc
+ls -al ${FULL_TEMP}/${TASKNAME}.root
+rootls -t ${FULL_TEMP}/${TASKNAME}.root
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${FULL_TEMP}/${TASKNAME}.root" "${FULL_S3RW}"
+      ${MC} -C . cp --disable-multipart ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -173,8 +174,8 @@ if [ -x ${MC} ] ; then
 fi
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  cp "${FULL_TEMP}/${TASKNAME}.root" "${FULL_DIR}"
-  ls -al "${FULL_DIR}/${TASKNAME}.root"
+  cp ${FULL_TEMP}/${TASKNAME}.root ${FULL_DIR}
+  ls -al ${FULL_DIR}/${TASKNAME}.root
 fi
 
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
@@ -194,20 +195,21 @@ for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; 
     gaudirun.py ${rec} \
     || [ $? -eq 4 ]
   # FIXME why $? = 4
-  ls -al "${JUGGLER_REC_FILE}"
-  rootls -t "${JUGGLER_REC_FILE}"
+  ls -al ${JUGGLER_REC_FILE}
+  rootls -t ${JUGGLER_REC_FILE}
 done
+rm -f ${FULL_TEMP}/${TASKNAME}.root
 
-} 2>&1 | tee "${LOG_TEMP}/${TASKNAME}.out"
-ls -al "${LOG_TEMP}/${TASKNAME}.out"
+} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.out
+ls -al ${LOG_TEMP}/${TASKNAME}.out
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart ${RECO_TEMP}/${TASKNAME}*.root "${RECO_S3RW}"
-      ${MC} -C . cp --disable-multipart ${LOG_TEMP}/${TASKNAME}.out "${LOG_S3RW}"
+      ${MC} -C . cp --disable-multipart ${RECO_TEMP}/${TASKNAME}*.root ${RECO_S3RW}
+      ${MC} -C . cp --disable-multipart ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -218,16 +220,14 @@ if [ -x ${MC} ] ; then
 fi
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  cp "${RECO_TEMP}/${TASKNAME}*.root" "${RECO_DIR}"
-  ls -al "${RECO_DIR}/${TASKNAME}*.root"
+  cp ${RECO_TEMP}/${TASKNAME}*.root ${RECO_DIR}
+  ls -al ${RECO_DIR}/${TASKNAME}*.root
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  cp "${LOG_TEMP}/${TASKNAME}.out" "${LOG_DIR}"
-  ls -al "${LOG_DIR}/${TASKNAME}.out"
+  cp ${LOG_TEMP}/${TASKNAME}.out ${LOG_DIR}
+  ls -al ${LOG_DIR}/${TASKNAME}.out
 fi
+rm -f ${RECO_TEMP}/${TASKNAME}*.root
 
 # closeout
-rm -f "${INPUT_TEMP}"
-rm -f "${FULL_TEMP}/${TASKNAME}*.root"
-rm -f "${RECO_TEMP}/${TASKNAME}*.root"
 date

@@ -86,10 +86,9 @@ fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
-mkdir -p ${INPUT_DIR} 
 INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/
-mkdir -p   ${INPUT_TEMP}
-INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}.hepmc
+mkdir -p ${INPUT_DIR} ${INPUT_TEMP}
+INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/
 INPUT_S3RO=${INPUT_S3RO//\/\//\/}
 TAG=${DETECTOR_VERSION}/${TAG}
 
@@ -123,7 +122,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
     if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}" "${INPUT_DIR}"
+        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}/${BASENAME}.hepmc" "${INPUT_DIR}"
         ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
@@ -207,7 +206,9 @@ if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${RECO_TEMP}/${TASKNAME}*.root" "${RECO_S3RW}"
+      for i in "${RECO_TEMP}/${TASKNAME}*.root" ; do
+        ${MC} -C . cp --disable-multipart "${i}" "${RECO_S3RW}"
+      done
       ${MC} -C . cp --disable-multipart "${LOG_TEMP}/${TASKNAME}.out" "${LOG_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else

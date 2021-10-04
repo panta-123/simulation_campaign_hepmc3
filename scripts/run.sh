@@ -190,7 +190,7 @@ export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
 for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
-  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.root}"
+  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.root"
   /usr/bin/time -v \
     gaudirun.py ${rec} \
     || [ $? -eq 4 ]

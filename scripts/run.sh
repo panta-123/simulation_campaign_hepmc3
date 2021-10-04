@@ -50,39 +50,6 @@ S3RW="S3rw"
 S3RODIR="${S3RO}/eictest/ATHENA"
 S3RWDIR="${S3RW}/eictest/ATHENA"
 
-# Input file parsing
-BASENAME=$(basename ${INPUT_FILE} .hepmc)
-INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))/
-# - file.hepmc              -> TAG="", and avoid double // in S3 location
-# - EVGEN/file.hepmc        -> TAG="", and avoid double // in S3 location
-# - EVGEN/DIS/file.hepmc    -> TAG="DIS"
-# - EVGEN/DIS/NC/file.hepmc -> TAG="DIS/NC"
-# - ../file.hepmc           -> error
-if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
-  echo "Error: Input file must be below current directory."
-  exit
-fi
-INPUT_PREFIX=${INPUT_DIR/\/*/}
-TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
-mkdir -p   ${BASEDIR}/EVGEN/${TAG}
-INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}.hepmc
-INPUT_S3RO=${INPUT_S3RO//\/\//\/}
-TAG=${DETECTOR_VERSION}/${TAG}
-
-# Output file names
-mkdir -p ${BASEDIR}/LOG/${TAG}
-LOG_FILE=${BASEDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
-LOG_S3RW=${S3RWDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
-LOG_S3RW=${LOG_S3RW//\/\//\/}
-mkdir -p  ${BASEDIR}/FULL/${TAG}
-FULL_FILE=${BASEDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${S3RWDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-FULL_S3RW=${FULL_S3RW//\/\//\/}
-mkdir -p  ${BASEDIR}/RECO/${TAG}
-RECO_FILE=${BASEDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-RECO_S3RW=${S3RWDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-RECO_S3RW=${RECO_S3RW//\/\//\/}
-
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
 echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}"
@@ -102,14 +69,49 @@ else
   fi
 fi
 echo "TMPDIR=${TMPDIR}"
-mkdir -p   ${TMPDIR}/EVGEN/${TAG}/
-INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/${BASENAME}${TASK}.hepmc
-mkdir -p  ${TMPDIR}/FULL/${TAG}/
-FULL_TEMP=${TMPDIR}/FULL/${TAG}/${BASENAME}${TASK}.root
-mkdir -p  ${TMPDIR}/RECO/${TAG}/
-RECO_TEMP=${TMPDIR}/RECO/${TAG}/${BASENAME}${TASK}.root
-mkdir -p ${TMPDIR}/LOG/${TAG}/
-LOG_TEMP=${TMPDIR}/LOG/${TAG}/${BASENAME}${TASK}.out
+
+# Input file parsing
+BASENAME=$(basename ${INPUT_FILE} .hepmc)
+TASKNAME=${BASENAME}${TASK}
+INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))/
+# - file.hepmc              -> TAG="", and avoid double // in S3 location
+# - EVGEN/file.hepmc        -> TAG="", and avoid double // in S3 location
+# - EVGEN/DIS/file.hepmc    -> TAG="DIS"
+# - EVGEN/DIS/NC/file.hepmc -> TAG="DIS/NC"
+# - ../file.hepmc           -> error
+if [ ! "${INPUT_DIR/\.\.\//}" = "${INPUT_DIR}" ] ; then
+  echo "Error: Input file must be below current directory."
+  exit
+fi
+INPUT_PREFIX=${INPUT_DIR/\/*/}
+TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
+INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
+mkdir -p ${INPUT_DIR} 
+INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}/
+mkdir -p   ${INPUT_TEMP}
+INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}/${BASENAME}.hepmc
+INPUT_S3RO=${INPUT_S3RO//\/\//\/}
+TAG=${DETECTOR_VERSION}/${TAG}
+
+# Output file names
+LOG_DIR=${BASEDIR}/LOG/${TAG}/
+LOG_TEMP=${TMPDIR}/LOG/${TAG}/
+LOG_S3RW=${S3RWDIR}/LOG/${TAG}/
+LOG_S3RW=${LOG_S3RW//\/\//\/}
+mkdir -p ${LOG_DIR} ${LOG_TEMP}
+#
+FULL_DIR=${BASEDIR}/FULL/${TAG}/
+FULL_TEMP=${TMPDIR}/FULL/${TAG}/
+FULL_S3RW=${S3RWDIR}/FULL/${TAG}/
+FULL_S3RW=${FULL_S3RW//\/\//\/}
+mkdir -p ${FULL_DIR} ${FULL_TEMP}
+#
+RECO_DIR=${BASEDIR}/RECO/${TAG}/
+RECO_TEMP=${TMPDIR}/RECO/${TAG}/
+RECO_S3RW=${S3RWDIR}/RECO/${TAG}/
+RECO_S3RW=${RECO_S3RW//\/\//\/}
+mkdir -p ${RECO_DIR} ${RECO_TEMP}
+
 
 # Start logging block
 {
@@ -121,7 +123,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
     if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}" "${INPUT_FILE}"
+        ${MC} -C . cp --disable-multipart "${INPUT_S3RO}" "${INPUT_DIR}"
         ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
@@ -152,19 +154,16 @@ date
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
   --inputFiles "${INPUT_TEMP}" \
-  --outputFile "${FULL_TEMP}"
-ls -al "${FULL_TEMP}"
-rootls -t "${FULL_TEMP}"
-if [ "${COPYFULL:-false}" == "true" ] ; then
-  cp "${FULL_TEMP}" "${FULL_FILE}"
-fi
+  --outputFile "${FULL_TEMP}/${TASKNAME}.root"
+ls -al "${FULL_TEMP}/${TASKNAME}.root"
+rootls -t "${FULL_TEMP}/${TASKNAME}.root"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${FULL_TEMP}" "${FULL_S3RW}"
+      ${MC} -C . cp --disable-multipart "${FULL_TEMP}/${TASKNAME}.root" "${FULL_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -172,6 +171,11 @@ if [ -x ${MC} ] ; then
   else
     echo "No internet connection."
   fi
+fi
+# Data egress to directory
+if [ "${COPYFULL:-false}" == "true" ] ; then
+  cp "${FULL_TEMP}/${TASKNAME}.root" "${FULL_DIR}"
+  ls -al "${FULL_DIR}/${TASKNAME}.root"
 fi
 
 # Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
@@ -181,37 +185,30 @@ fi
 
 # Run reconstruction
 date
-export JUGGLER_SIM_FILE="${FULL_TEMP}"
-export JUGGLER_REC_FILE="${RECO_TEMP}"
 export JUGGLER_N_EVENTS=2147483647
+export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
 for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
-  JUGGLER_REC_FILE=${JUGGLER_REC_FILE/.root/${tag:-}.root} \
-    /usr/bin/time -v \
-      gaudirun.py ${rec}} \
-  || [ $? -eq 4 ]
+  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.root}"
+  /usr/bin/time -v \
+    gaudirun.py ${rec} \
+    || [ $? -eq 4 ]
+  # FIXME why $? = 4
+  ls -al "${JUGGLER_REC_FILE}"
+  rootls -t "${JUGGLER_REC_FILE}"
 done
-# FIXME why $? = 4
-ls -al "${RECO_TEMP}"
-rootls -t "${RECO_TEMP}"
-if [ "${COPYRECO:-false}" == "true" ] ; then
-  cp "${RECO_TEMP}" "${RECO_FILE}"
-fi
 
-} 2>&1 | tee "${LOG_TEMP}"
-ls -al "${LOG_TEMP}"
-if [ "${COPYLOG:-false}" == "true" ] ; then
-  cp "${LOG_TEMP}" "${LOG_FILE}"
-fi
+} 2>&1 | tee "${LOG_TEMP}/${TASKNAME}.out"
+ls -al "${LOG_TEMP}/${TASKNAME}.out"
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
   if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart "${RECO_TEMP}" "${RECO_S3RW}"
-      ${MC} -C . cp --disable-multipart "${LOG_TEMP}" "${LOG_S3RW}"
+      ${MC} -C . cp --disable-multipart "${RECO_TEMP}/${TASKNAME}*.root" "${RECO_S3RW}"
+      ${MC} -C . cp --disable-multipart "${LOG_TEMP}/${TASKNAME}.out" "${LOG_S3RW}"
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -220,18 +217,18 @@ if [ -x ${MC} ] ; then
     echo "No internet connection."
   fi
 fi
+# Data egress to directory
+if [ "${COPYRECO:-false}" == "true" ] ; then
+  cp "${RECO_TEMP}/${TASKNAME}*.root" "${RECO_DIR}"
+  ls -al "${RECO_DIR}/${TASKNAME}*.root"
+fi
+if [ "${COPYLOG:-false}" == "true" ] ; then
+  cp "${LOG_TEMP}/${TASKNAME}.out" "${LOG_DIR}"
+  ls -al "${LOG_DIR}/${TASKNAME}.out"
+fi
 
 # closeout
 rm -f "${INPUT_TEMP}"
-rm -f "${FULL_TEMP}"
-rm -f "${RECO_TEMP}"
-if [ "${COPYFULL:-false}" == "true" ] ; then
-  ls -al "${FULL_FILE}"
-fi
-if [ "${COPYRECO:-false}" == "true" ] ; then
-  ls -al "${RECO_FILE}"
-fi
-if [ "${COPYLOG:-false}" == "true" ] ; then
-  ls -al "${LOG_FILE}"
-fi
+rm -f "${FULL_TEMP}/${TASKNAME}*.root"
+rm -f "${RECO_TEMP}/${TASKNAME}*.root"
 date

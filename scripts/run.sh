@@ -140,7 +140,7 @@ fi
 if [ ! -f "${INPUT_TEMP}" ] ; then
   cp "${INPUT_FILE}" "${INPUT_TEMP}"
 fi
-ls -al "${INPUT_TEMP}"
+ls -al "${INPUT_TEMP}/${BASENAME}.hepmc"
 date
 /usr/bin/time -v \
   npsim \
@@ -153,7 +153,7 @@ date
   --part.minimalKineticEnergy 1*TeV \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
-  --inputFiles "${INPUT_TEMP}" \
+  --inputFiles "${INPUT_TEMP}/${BASENAME}.hepmc" \
   --outputFile "${FULL_TEMP}/${TASKNAME}.root"
 ls -al "${FULL_TEMP}/${TASKNAME}.root"
 rootls -t "${FULL_TEMP}/${TASKNAME}.root"

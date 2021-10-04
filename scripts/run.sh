@@ -184,9 +184,14 @@ date
 export JUGGLER_SIM_FILE="${FULL_TEMP}"
 export JUGGLER_REC_FILE="${RECO_TEMP}"
 export JUGGLER_N_EVENTS=2147483647
-/usr/bin/time -v \
-  gaudirun.py ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options/reconstruction.py} \
+for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
+  unset tag
+  [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
+  JUGGLER_REC_FILE=${JUGGLER_REC_FILE/.root/${tag:-}.root} \
+    /usr/bin/time -v \
+      gaudirun.py ${rec}} \
   || [ $? -eq 4 ]
+done
 # FIXME why $? = 4
 ls -al "${RECO_TEMP}"
 rootls -t "${RECO_TEMP}"

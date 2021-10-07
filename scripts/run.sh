@@ -116,10 +116,19 @@ mkdir -p ${RECO_DIR} ${RECO_TEMP}
 {
 date
 
+# Internet connectivity check
+if curl --connect-timeout 10 --silent --show-error ${S3URL} > /dev/null ; then
+  echo "$(hostname) is online."
+  ONLINE=true
+else
+  echo "$(hostname) is NOT online."
+  ONLINE=""
+fi
+
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
   if [ -x ${MC} ] ; then
-    if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
+    if [ -n "${ONLINE:-}" ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
         ${MC} -C . cp --disable-multipart ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
@@ -160,7 +169,7 @@ rootls -t ${FULL_TEMP}/${TASKNAME}.root
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
-  if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
+  if [ -n "${ONLINE:-}" ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . cp --disable-multipart ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}
@@ -205,7 +214,7 @@ ls -al ${LOG_TEMP}/${TASKNAME}.out
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ -x ${MC} ] ; then
-  if curl --connect-timeout 5 --silent --show-error ${S3URL} > /dev/null ; then
+  if [ -n "${ONLINE:-}" ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . cp --disable-multipart ${RECO_TEMP}/${TASKNAME}*.root ${RECO_S3RW}

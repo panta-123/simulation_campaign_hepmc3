@@ -1,6 +1,6 @@
 image: eicweb.phy.anl.gov:4567/eic/juggler/juggler:latest
 
-run_hepmc3:
+run_hepmc3_local:
   stage: test
   tags:
     - s3
@@ -9,7 +9,7 @@ run_hepmc3:
     - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
-run_hepmc3_0001:
+run_hepmc3_local_0001:
   stage: test
   tags:
     - s3
@@ -17,3 +17,20 @@ run_hepmc3_0001:
     - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
     - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
+
+run_hepmc3_s3:
+  stage: test
+  tags:
+    - s3
+  script:
+    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
+    - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
+
+run_hepmc3_s3_0001:
+  stage: test
+  tags:
+    - s3
+  script:
+    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
+    - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
+

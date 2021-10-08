@@ -117,7 +117,7 @@ mkdir -p ${RECO_DIR} ${RECO_TEMP}
 date
 
 # Internet connectivity check
-if curl --connect-timeout 10 --silent --show-error ${S3URL} > /dev/null ; then
+if curl --connect-timeout 10 --retry 5 --silent --show-error ${S3URL} > /dev/null ; then
   echo "$(hostname) is online."
   ONLINE=true
 else

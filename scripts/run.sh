@@ -70,6 +70,7 @@ else
   fi
 fi
 echo "TMPDIR=${TMPDIR}"
+mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing

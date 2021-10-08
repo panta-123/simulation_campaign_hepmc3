@@ -19,6 +19,7 @@ date
 hostname
 whoami
 pwd
+df -h
 ls -al
 
 # Load container environment (include ${DETECTOR_VERSION})
@@ -69,6 +70,7 @@ else
   fi
 fi
 echo "TMPDIR=${TMPDIR}"
+ls -al ${TMPDIR}
 
 # Input file parsing
 BASENAME=$(basename ${INPUT_FILE} .hepmc)
@@ -131,7 +133,8 @@ if [ ! -f ${INPUT_FILE} ] ; then
     if [ -n "${ONLINE:-}" ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        ${MC} -C . cp --disable-multipart ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
+        ${MC} -C . config host list | grep -v SecretKey
+        ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
         ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
@@ -172,7 +175,8 @@ if [ -x ${MC} ] ; then
   if [ -n "${ONLINE:-}" ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}
+      ${MC} -C . config host list | grep -v SecretKey
+      ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."
@@ -217,8 +221,9 @@ if [ -x ${MC} ] ; then
   if [ -n "${ONLINE:-}" ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      ${MC} -C . cp --disable-multipart ${RECO_TEMP}/${TASKNAME}*.root ${RECO_S3RW}
-      ${MC} -C . cp --disable-multipart ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}
+      ${MC} -C . config host list | grep -v SecretKey
+      ${MC} -C . cp --disable-multipart --insecure ${RECO_TEMP}/${TASKNAME}*.root ${RECO_S3RW}
+      ${MC} -C . cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}
       ${MC} -C . config host remove ${S3RW}
     else
       echo "No S3 credentials."

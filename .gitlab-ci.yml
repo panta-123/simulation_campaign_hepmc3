@@ -1,5 +1,9 @@
 image: eicweb.phy.anl.gov:4567/eic/juggler/juggler:latest
 
+stages:
+  - test
+  - deploy
+
 run_hepmc3_local:
   stage: test
   tags:
@@ -34,3 +38,17 @@ run_hepmc3_s3_0001:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
+jug_xl:master:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_SERVER_HOST == "eicweb.phy.anl.gov"'
+      when: on_success
+    - when: never
+  needs:
+    - run_hepmc3_local
+    - run_hepmc3_local_0001
+    - run_hepmc3_s3
+    - run_hepmc3_s3_0001
+  trigger:
+    project: containers/eic_container
+  allow_failure: true

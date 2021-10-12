@@ -114,19 +114,18 @@ RECO_S3RW=${S3RWDIR}/RECO/${TAG}
 RECO_S3RW=${RECO_S3RW//\/\//\/}
 mkdir -p ${RECO_DIR} ${RECO_TEMP}
 
+# Internet connectivity check
+if curl --connect-timeout 10 --retry 5 --silent --show-error ${S3URL} > /dev/null ; then
+  echo "$(hostname) is online."
+  export ONLINE=true
+else
+  echo "$(hostname) is NOT online."
+  export ONLINE=""
+fi
 
 # Start logging block
 {
 date
-
-# Internet connectivity check
-if curl --connect-timeout 10 --retry 5 --silent --show-error ${S3URL} > /dev/null ; then
-  echo "$(hostname) is online."
-  ONLINE=true
-else
-  echo "$(hostname) is NOT online."
-  ONLINE=""
-fi
 
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then

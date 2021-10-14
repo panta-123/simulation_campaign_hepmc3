@@ -222,7 +222,9 @@ if [ -x ${MC} ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       ${MC} -C . config host list | grep -v SecretKey
-      ${MC} -C . cp --disable-multipart --insecure ${RECO_TEMP}/${TASKNAME}*.root ${RECO_S3RW}
+      for i in ${RECO_TEMP}/${TASKNAME}*.root ; do
+        ${MC} -C . cp --disable-multipart --insecure ${i} ${RECO_S3RW}
+      done
       ${MC} -C . cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}
       ${MC} -C . config host remove ${S3RW}
     else

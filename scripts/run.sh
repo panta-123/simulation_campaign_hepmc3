@@ -149,7 +149,7 @@ fi
 
 # Run simulation
 if [ ! -f "${INPUT_TEMP}" ] ; then
-  cp ${INPUT_FILE} ${INPUT_TEMP}
+  cp -n ${INPUT_FILE} ${INPUT_TEMP}
 fi
 ls -al ${INPUT_TEMP}/${BASENAME}.hepmc
 date

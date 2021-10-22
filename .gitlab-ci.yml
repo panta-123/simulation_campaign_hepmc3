@@ -4,36 +4,38 @@ stages:
   - test
   - deploy
 
-run_hepmc3_local:
+.test:
   stage: test
-  tags:
-    - s3
+  parallel:
+    matrix:
+      - TAG:
+        - "testing"
+        - "4.0-acadia-stable"
+        - "4.0-canyonlands-stable"
+  image: eicweb.phy.anl.gov:4567/containers/eic_container/jug_xl:${TAG}
+
+run_hepmc3_local:
+  extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
     - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_local_0001:
-  stage: test
-  tags:
-    - s3
+  extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
     - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
 run_hepmc3_s3:
-  stage: test
-  tags:
-    - s3
+  extends: .test
   script:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_s3_0001:
-  stage: test
-  tags:
-    - s3
+  extends: .test
   script:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root

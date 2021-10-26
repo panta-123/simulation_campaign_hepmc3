@@ -9,7 +9,7 @@ stages:
   parallel:
     matrix:
       - TAG:
-        - "testing"
+        - "nightly"
         - "4.0-acadia-stable"
         - "4.0-canyonlands-stable"
   image: eicweb.phy.anl.gov:4567/containers/eic_container/jug_xl:${TAG}

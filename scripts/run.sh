@@ -21,6 +21,7 @@ whoami
 pwd
 df -h
 ls -al
+eic-info
 
 # Load container environment (include ${DETECTOR_VERSION})
 source /opt/detector/setup.sh

@@ -128,6 +128,19 @@ fi
 {
 date
 
+# Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
+if [ ! -d config ] ; then
+  ${CALIBRATION:-/opt/benchmarks/physics_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
+fi
+
+# Test reconstruction before simulation
+export JUGGLER_N_EVENTS=2147483647
+export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
+export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.root"
+for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
+  python ${rec}
+done
+
 # Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
 if [ ! -f ${INPUT_FILE} ] ; then
   if [ -x ${MC} ] ; then
@@ -191,15 +204,8 @@ if [ "${COPYFULL:-false}" == "true" ] ; then
   ls -al ${FULL_DIR}/${TASKNAME}.root
 fi
 
-# Get calibrations (e.g. 'acadia-v1.0-alpha' will pull artifacts from 'acadia')
-if [ ! -d config ] ; then
-  ${CALIBRATION:-/opt/benchmarks/physics_benchmarks}/bin/get_calibrations ${DETECTOR_VERSION/-*/}
-fi
-
 # Run reconstruction
 date
-export JUGGLER_N_EVENTS=2147483647
-export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
 for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"

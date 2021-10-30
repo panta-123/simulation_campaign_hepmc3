@@ -48,7 +48,7 @@ BASEDIR=${DATADIR:-${PWD}}
 function retry {
   local n=0
   local max=5
-  local delay=1
+  local delay=20
   while [[ $n -lt $max ]] ; do
     n=$((n+1))
     s=0

@@ -48,13 +48,19 @@ BASEDIR=${DATADIR:-${PWD}}
 function retry {
   local n=0
   local max=5
-  local delay=15
+  local delay=1
   while [[ $n -lt $max ]] ; do
     n=$((n+1))
-    "$@"
-    s=$?
-    [ $s -eq 0 ] && break
-    [ $n -ge $max ] && exit $s
+    s=0
+    "$@" || s=$?
+    [ $s -eq 0 ] && {
+      return $s
+    }
+    [ $n -ge $max ] && {
+      echo "Failed after $n retries, exiting with $s"
+      return $s
+    }
+    echo "Retrying in $delay seconds..."
     sleep $delay
   done
 }

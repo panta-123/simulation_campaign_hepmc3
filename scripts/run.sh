@@ -3,6 +3,13 @@ set -Euo pipefail
 trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 IFS=$'\n\t'
 
+# Load job environment (includes secrets, so delete when read)
+if [ -f environment.sh] ; then
+  grep -v SECRET environment.sh
+  source environment.sh
+  rm environment.sh
+fi
+
 # Check arguments
 if [ $# -lt 1 ] ; then
   echo "Usage: "
@@ -239,7 +246,7 @@ for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; 
 done
 rm -f ${FULL_TEMP}/${TASKNAME}.root
 
-} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.out
+} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.out
 ls -al ${LOG_TEMP}/${TASKNAME}.out
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment

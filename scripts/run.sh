@@ -4,7 +4,7 @@ trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 IFS=$'\n\t'
 
 # Load job environment (includes secrets, so delete when read)
-if [ -f environment.sh] ; then
+if [ -f environment.sh ] ; then
   grep -v SECRET environment.sh
   source environment.sh
   rm environment.sh

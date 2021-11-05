@@ -22,10 +22,11 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Startup
-date
-hostname
-whoami
-pwd
+echo "date:     $(date)"
+echo "hostname: $(hostname -f)"
+echo "uname:    $(uname -a)"
+echo "whoami:   $(whoami)"
+echo "pwd:      $(pwd)"
 df -h
 ls -al
 eic-info

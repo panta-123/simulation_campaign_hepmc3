@@ -150,7 +150,7 @@ if curl --connect-timeout 10 --retry 5 --silent --show-error ${S3URL} > /dev/nul
   export ONLINE=true
 else
   echo "$(hostname) is NOT online."
-  export ONLINE=""
+  export ONLINE=false
 fi
 
 # Start logging block

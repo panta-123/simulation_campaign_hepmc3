@@ -213,18 +213,20 @@ rm -f ${INPUT_TEMP}/${BASENAME}.hepmc
 ls -al ${FULL_TEMP}/${TASKNAME}.root
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-if [ -x ${MC} ] ; then
-  if [ -n "${ONLINE:-}" ] ; then
-    if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-      retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      retry ${MC} -C . config host list | grep -v SecretKey
-      retry ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}/
-      retry ${MC} -C . config host remove ${S3RW}
+if [ "${UPLOADFULL:-false}" == "true" ] ; then
+  if [ -x ${MC} ] ; then
+    if [ -n "${ONLINE:-}" ] ; then
+      if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
+        retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+        retry ${MC} -C . config host list | grep -v SecretKey
+        retry ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}/
+        retry ${MC} -C . config host remove ${S3RW}
+      else
+        echo "No S3 credentials."
+      fi
     else
-      echo "No S3 credentials."
+      echo "No internet connection."
     fi
-  else
-    echo "No internet connection."
   fi
 fi
 # Data egress to directory

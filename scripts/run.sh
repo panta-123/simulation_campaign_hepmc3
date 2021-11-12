@@ -150,6 +150,9 @@ if curl --connect-timeout 10 --retry 5 --silent --show-error ${S3URL} > /dev/nul
   export ONLINE=true
 else
   echo "$(hostname) is NOT online."
+  if which tracepath ; then
+    tracepath -b -p 9000 dtn01.sdcc.bnl.gov
+  fi
   export ONLINE=false
 fi
 

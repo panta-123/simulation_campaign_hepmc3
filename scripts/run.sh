@@ -189,11 +189,15 @@ if [ ! -f ${INPUT_FILE} ] ; then
     fi
   fi
 fi
-
-# Run simulation
+# Copy input to temp location
 if [ ! -f "${INPUT_TEMP}" ] ; then
   cp -n ${INPUT_FILE} ${INPUT_TEMP}
 fi
+
+# FIXME strip vertex positions to ensure correct particles
+sed -i 's|\s@.*||g' ${INPUT_TEMP}/${BASENAME}.hepmc
+
+# Run simulation
 ls -al ${INPUT_TEMP}/${BASENAME}.hepmc
 date
 /usr/bin/time -v \

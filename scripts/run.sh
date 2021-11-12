@@ -27,6 +27,8 @@ echo "hostname: $(hostname -f)"
 echo "uname:    $(uname -a)"
 echo "whoami:   $(whoami)"
 echo "pwd:      $(pwd)"
+echo "site:     ${GLIDEIN_Site:-}"
+echo "resource: ${GLIDEIN_ResourceName:-}"
 df -h
 ls -al
 eic-info

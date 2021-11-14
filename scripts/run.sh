@@ -182,7 +182,17 @@ if [ ! -f ${INPUT_FILE} ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         retry ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
         retry ${MC} -C . config host list | grep -v SecretKey
-        retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
+        if [ -n "$(retry ${MC} -C . ls ${INPUT_S3RO}/${BASENAME}.hepmc.gz)" ] ; then
+          echo "Downloading hepmc.gz file at ${INPUT_S3RO}/${BASENAME}.hepmc.gz"
+          retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc.gz ${INPUT_DIR}
+          ls -al ${INPUT_FILE}.gz
+          gunzip ${INPUT_FILE}.gz
+          ls -al ${INPUT_FILE}
+        else
+          echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}.hepmc"
+          retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
+          ls -al ${INPUT_FILE}
+        fi
         retry ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."

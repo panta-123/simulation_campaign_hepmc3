@@ -106,8 +106,15 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-INPUT_FILE=${INPUT_FILE/.gz/}
-BASENAME=$(basename ${INPUT_FILE} .hepmc)
+if [[ "${INPUT_FILE}" =~ \.hepmc\.gz ]] ; then
+  EXTENSION=".hepmc.gz"
+elif [[ "${INPUT_FILE}" =~ \.hepmc ]] ; then
+  EXTENSION=".hepmc"
+else
+  echo "Error: ${INPUT_FILE} has unknown extension!"
+  exit 1
+fi
+BASENAME=$(basename ${INPUT_FILE} ${EXTENSION})
 TASKNAME=${BASENAME}${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))
 # - file.hepmc              -> TAG="", and avoid double // in S3 location
@@ -183,17 +190,9 @@ if [ ! -f ${INPUT_FILE} ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         retry ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
         retry ${MC} -C . config host list | grep -v SecretKey
-        if [ -n "$(retry ${MC} -C . ls ${INPUT_S3RO}/${BASENAME}.hepmc.gz)" ] ; then
-          echo "Downloading hepmc.gz file at ${INPUT_S3RO}/${BASENAME}.hepmc.gz"
-          retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc.gz ${INPUT_DIR}
-          ls -al ${INPUT_FILE}.gz
-          gunzip ${INPUT_FILE}.gz
-          ls -al ${INPUT_FILE}
-        else
-          echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}.hepmc"
-          retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}.hepmc ${INPUT_DIR}
-          ls -al ${INPUT_FILE}
-        fi
+        echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
+        retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
+        ls -al ${INPUT_FILE}
         retry ${MC} -C . config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
@@ -210,11 +209,17 @@ if [ ! -f "${INPUT_TEMP}" ] ; then
   cp -n ${INPUT_FILE} ${INPUT_TEMP}
 fi
 
+# Unzip if needed
+if [[ ${EXTENSION} == ".hepmc.gz" ]] ; then
+  gunzip ${INPUT_TEMP}/${BASENAME}${EXTENSION}
+  EXTENSION=".hepmc"
+fi
+
 # FIXME strip vertex positions to ensure correct particles
-sed -i 's|\s@.*||g' ${INPUT_TEMP}/${BASENAME}.hepmc
+sed -i 's|\s@.*||g' ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 
 # Run simulation
-ls -al ${INPUT_TEMP}/${BASENAME}.hepmc
+ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 date
 /usr/bin/time -v \
   npsim \
@@ -227,9 +232,9 @@ date
   --part.minimalKineticEnergy 1*TeV \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
-  --inputFiles ${INPUT_TEMP}/${BASENAME}.hepmc \
+  --inputFiles ${INPUT_TEMP}/${BASENAME}${EXTENSION} \
   --outputFile ${FULL_TEMP}/${TASKNAME}.root
-rm -f ${INPUT_TEMP}/${BASENAME}.hepmc
+rm -f ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 ls -al ${FULL_TEMP}/${TASKNAME}.root
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment

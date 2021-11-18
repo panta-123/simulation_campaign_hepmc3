@@ -215,9 +215,6 @@ if [[ ${EXTENSION} == ".hepmc.gz" ]] ; then
   EXTENSION=".hepmc"
 fi
 
-# FIXME strip vertex positions to ensure correct particles
-sed -i 's|\s@.*||g' ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-
 # Run simulation
 ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 date

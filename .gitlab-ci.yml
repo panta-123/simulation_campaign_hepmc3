@@ -40,16 +40,28 @@ run_hepmc3_s3_0001:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
-run_hepmc3_s3_gz:
+run_hepmc3_s3_gz_inferred:
   extends: .test
   script:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.hepmc 20
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.root
 
-run_hepmc3_s3_gz_0001:
+run_hepmc3_s3_gz_inferred_0001:
   extends: .test
   script:
     - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.hepmc 20 1
+    - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.0001.root
+
+run_hepmc3_s3_gz_explicit:
+  extends: .test
+  script:
+    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.hepmc.gz 20
+    - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.root
+
+run_hepmc3_s3_gz_explicit_0001:
+  extends: .test
+  script:
+    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.hepmc.gz 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev_gz.0001.root
 
 jug_xl:master:

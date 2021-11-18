@@ -106,7 +106,7 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-INPUT_FILE=$(basename ${INPUT_FILE} .gz)
+INPUT_FILE=${INPUT_FILE/.gz/}
 BASENAME=$(basename ${INPUT_FILE} .hepmc)
 TASKNAME=${BASENAME}${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))

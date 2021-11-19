@@ -17,39 +17,39 @@ stages:
 run_hepmc3_local:
   extends: .test
   script:
-    - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
+    - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/
+    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_local_0001:
   extends: .test
   script:
-    - mkdir -p EVGEN/CI/ && cp -f test/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
+    - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/
+    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20 1
     - test -f RECO/*/CI/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
 run_hepmc3_s3:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20
+    - COPYRECO=true scripts/run.sh test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_s3_0001:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc 20 1
+    - COPYRECO=true scripts/run.sh test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
 run_hepmc3_s3_gz:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc.gz 20
+    - COPYRECO=true scripts/run.sh test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc.gz 20
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.root
 
 run_hepmc3_s3_gz_0001:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.hepmc.gz 20 1
+    - COPYRECO=true scripts/run.sh test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc.gz 20 1
     - test -f RECO/*/TEST/DIS_NC_Q2gt10_crossDivNrgCrab_25mRad_5x41_v2_20ev.0001.root
 
 jug_xl:master:

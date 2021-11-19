@@ -216,7 +216,7 @@ if [[ ${EXTENSION} == ".hepmc.gz" ]] ; then
 fi
 
 # Sanitize hepmc
-cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > cat ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
+cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
 mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 
 # Run simulation

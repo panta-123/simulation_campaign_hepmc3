@@ -263,7 +263,7 @@ fi
 
 # Run reconstruction
 date
-for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/reconstruction.py ; do
+for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
   export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.root"

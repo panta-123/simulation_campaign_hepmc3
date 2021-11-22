@@ -179,7 +179,7 @@ fi
 export JUGGLER_N_EVENTS=2147483647
 export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
 export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.root"
-for rec in ${RECONSTRUCTION:-/opt/benchmarks/physics_benchmarks/options}/*.py ; do
+for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   python ${rec}
 done
 

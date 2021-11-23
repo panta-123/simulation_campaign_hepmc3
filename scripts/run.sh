@@ -163,7 +163,7 @@ else
   if which tracepath ; then
     tracepath -b -p 9000 dtn01.sdcc.bnl.gov
   fi
-  export ONLINE=false
+  export ONLINE=
 fi
 
 # Start logging block

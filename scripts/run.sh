@@ -240,7 +240,7 @@ date
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
   --inputFiles ${INPUT_TEMP}/${BASENAME}${EXTENSION} \
   --outputFile ${FULL_TEMP}/${TASKNAME}.root \
-  --physics.rejectPDGs 1\ 2\ 3\ 4\ 5\ 6\ 21\ 23\ 24\ 25\ 2101
+  --physics.rejectPDGs 1\ 2\ 3\ 4\ 5\ 6\ 21\ 23\ 24\ 25\ 431\ 433\ 2101
 rm -f ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 ls -al ${FULL_TEMP}/${TASKNAME}.root
 

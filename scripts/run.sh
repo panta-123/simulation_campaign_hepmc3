@@ -29,6 +29,7 @@ echo "whoami:   $(whoami)"
 echo "pwd:      $(pwd)"
 echo "site:     ${GLIDEIN_Site:-}"
 echo "resource: ${GLIDEIN_ResourceName:-}"
+echo "http_proxy: ${http_proxy:-}"
 df -h
 ls -al
 eic-info

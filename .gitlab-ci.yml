@@ -10,8 +10,7 @@ stages:
     matrix:
       - TAG:
         - "nightly"
-        - "4.0-acadia-stable"
-        - "4.0-canyonlands-stable"
+        - "4.0-deathvalley-stable"
   image: eicweb.phy.anl.gov:4567/containers/eic_container/jug_xl:${TAG}
 
 run_hepmc3_local:

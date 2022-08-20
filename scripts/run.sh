@@ -81,8 +81,8 @@ MC="/usr/local/bin/mc"
 S3URL="https://dtn01.sdcc.bnl.gov:9000"
 S3RO="S3"
 S3RW="S3rw"
-S3RODIR="${S3RO}/eictest/ATHENA"
-S3RWDIR="${S3RW}/eictest/ATHENA"
+S3RODIR="${S3RO}/eictest/EPIC"
+S3RWDIR="${S3RW}/eictest/EPIC"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"

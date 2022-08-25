@@ -2,7 +2,6 @@ image: eicweb.phy.anl.gov:4567/eic/juggler/juggler:latest
 
 stages:
   - test
-  - deploy
 
 .test:
   stage: test
@@ -55,20 +54,3 @@ run_hepmc3_s3_gz_0001:
     - COPYRECO=true RECONSTRUCTION=*.py scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc.gz 20 1
     - ls -al RECO/*/CI/
     - test -f RECO/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.0001.root
-
-jug_xl:master:
-  stage: deploy
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_SERVER_HOST == "eicweb.phy.anl.gov"'
-      when: on_success
-    - when: never
-  needs:
-    - run_hepmc3_local
-    - run_hepmc3_local_0001
-    - run_hepmc3_s3
-    - run_hepmc3_s3_0001
-    - run_hepmc3_s3_gz
-    - run_hepmc3_s3_gz_0001
-  trigger:
-    project: containers/eic_container
-  allow_failure: true

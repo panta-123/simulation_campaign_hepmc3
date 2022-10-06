@@ -178,8 +178,8 @@ date
 
 # Test reconstruction before simulation
 export JUGGLER_N_EVENTS=2147483647
-export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.root"
-export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.root"
+export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.edm4hep.root"
+export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.edm4hep.root"
 for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   python ${rec}
 done
@@ -235,9 +235,9 @@ date
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${JUGGLER_DETECTOR}.xml \
   --inputFiles ${INPUT_TEMP}/${BASENAME}${EXTENSION} \
-  --outputFile ${FULL_TEMP}/${TASKNAME}.root
+  --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
 rm -f ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-ls -al ${FULL_TEMP}/${TASKNAME}.root
+ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ "${UPLOADFULL:-false}" == "true" ] ; then
@@ -246,7 +246,7 @@ if [ "${UPLOADFULL:-false}" == "true" ] ; then
       if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
         retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
         retry ${MC} -C . config host list | grep -v SecretKey
-        retry ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.root ${FULL_S3RW}/
+        retry ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_S3RW}/
         retry ${MC} -C . config host remove ${S3RW}
       else
         echo "No S3 credentials."
@@ -258,8 +258,8 @@ if [ "${UPLOADFULL:-false}" == "true" ] ; then
 fi
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  cp ${FULL_TEMP}/${TASKNAME}.root ${FULL_DIR}
-  ls -al ${FULL_DIR}/${TASKNAME}.root
+  cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_DIR}
+  ls -al ${FULL_DIR}/${TASKNAME}.edm4hep.root
 fi
 
 # Run reconstruction
@@ -267,14 +267,14 @@ date
 for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
-  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.root"
+  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.edm4hep.root"
   /usr/bin/time -v \
     gaudirun.py ${rec} \
     || [ $? -eq 4 ]
   # FIXME why $? = 4
   ls -al ${JUGGLER_REC_FILE}
 done
-rm -f ${FULL_TEMP}/${TASKNAME}.root
+rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root
 
 } 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.out
 ls -al ${LOG_TEMP}/${TASKNAME}.out
@@ -285,7 +285,7 @@ if [ -x ${MC} ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
       retry ${MC} -C . config host list | grep -v SecretKey
-      for i in ${RECO_TEMP}/${TASKNAME}*.root ; do
+      for i in ${RECO_TEMP}/${TASKNAME}*.edm4hep.root ; do
         retry ${MC} -C . cp --disable-multipart --insecure ${i} ${RECO_S3RW}/
       done
       retry ${MC} -C . cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}/
@@ -299,14 +299,14 @@ if [ -x ${MC} ] ; then
 fi
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  cp ${RECO_TEMP}/${TASKNAME}*.root ${RECO_DIR}
-  ls -al ${RECO_DIR}/${TASKNAME}*.root
+  cp ${RECO_TEMP}/${TASKNAME}*.edm4hep.root ${RECO_DIR}
+  ls -al ${RECO_DIR}/${TASKNAME}*.edm4hep.root
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
   cp ${LOG_TEMP}/${TASKNAME}.out ${LOG_DIR}
   ls -al ${LOG_DIR}/${TASKNAME}.out
 fi
-rm -f ${RECO_TEMP}/${TASKNAME}*.root
+rm -f ${RECO_TEMP}/${TASKNAME}*.edm4hep.root
 
 # closeout
 date

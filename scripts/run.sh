@@ -180,7 +180,7 @@ date
 # Test reconstruction before simulation
 export JUGGLER_N_EVENTS=2147483647
 export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.edm4hep.root"
-export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.edm4hep.root"
+export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.edm4eic.root"
 for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   python ${rec}
 done
@@ -190,12 +190,13 @@ if [ ! -f ${INPUT_FILE} ] ; then
   if [ -x ${MC} ] ; then
     if [ -n "${ONLINE:-}" ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
-        retry ${MC} -C . config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        retry ${MC} -C . config host list | grep -v SecretKey
+        MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
+        retry ${MC} -C ${MC_CONFIG} config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
+        retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
         echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
-        retry ${MC} -C . cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
+        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
         ls -al ${INPUT_FILE}
-        retry ${MC} -C . config host remove ${S3RO}
+        retry ${MC} -C ${MC_CONFIG} config host remove ${S3RO}
       else
         echo "No S3 credentials. Provide (readonly) S3 credentials."
         exit -1
@@ -245,10 +246,11 @@ if [ "${UPLOADFULL:-false}" == "true" ] ; then
   if [ -x ${MC} ] ; then
     if [ -n "${ONLINE:-}" ] ; then
       if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-        retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        retry ${MC} -C . config host list | grep -v SecretKey
-        retry ${MC} -C . cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_S3RW}/
-        retry ${MC} -C . config host remove ${S3RW}
+        MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
+        retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+        retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
+        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_S3RW}/
+        retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
       else
         echo "No S3 credentials."
       fi
@@ -268,13 +270,21 @@ date
 for rec in ${RECONSTRUCTION_PATH:-/opt/benchmarks/physics_benchmarks/options}/${RECONSTRUCTION:-reconstruction.py} ; do
   unset tag
   [[ $(basename ${rec} .py) =~ (.*)\.(.*) ]] && tag=".${BASH_REMATCH[2]}"
-  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.edm4hep.root"
+  export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}${tag:-}.juggler.tree.edm4eic.root"
   /usr/bin/time -v \
     gaudirun.py ${rec} \
     || [ $? -eq 4 ]
   # FIXME why $? = 4
   ls -al ${JUGGLER_REC_FILE}
 done
+ls -al ${RECO_TEMP}/${TASKNAME}*.juggler.tree.edm4eic.root
+
+# Run eicrecon reconstruction
+date
+/usr/bin/time -v \
+  run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon"
+
+# Remove full simulation
 rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root
 
 } 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.out
@@ -284,13 +294,14 @@ ls -al ${LOG_TEMP}/${TASKNAME}.out
 if [ -x ${MC} ] ; then
   if [ -n "${ONLINE:-}" ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-      retry ${MC} -C . config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      retry ${MC} -C . config host list | grep -v SecretKey
-      for i in ${RECO_TEMP}/${TASKNAME}*.edm4hep.root ; do
-        retry ${MC} -C . cp --disable-multipart --insecure ${i} ${RECO_S3RW}/
+      MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
+      retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+      retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
+      for i in ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ; do
+        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${i} ${RECO_S3RW}/
       done
-      retry ${MC} -C . cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}/
-      retry ${MC} -C . config host remove ${S3RW}
+      retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.out ${LOG_S3RW}/
+      retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
     else
       echo "No S3 credentials."
     fi
@@ -300,14 +311,14 @@ if [ -x ${MC} ] ; then
 fi
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  cp ${RECO_TEMP}/${TASKNAME}*.edm4hep.root ${RECO_DIR}
-  ls -al ${RECO_DIR}/${TASKNAME}*.edm4hep.root
+  cp ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}
+  ls -al ${RECO_DIR}/${TASKNAME}*.edm4eic.root
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
   cp ${LOG_TEMP}/${TASKNAME}.out ${LOG_DIR}
   ls -al ${LOG_DIR}/${TASKNAME}.out
 fi
-rm -f ${RECO_TEMP}/${TASKNAME}*.edm4hep.root
+rm -f ${RECO_TEMP}/${TASKNAME}*.edm4eic.root
 
 # closeout
 date

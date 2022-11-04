@@ -188,7 +188,7 @@ if [ ! -f ${INPUT_FILE} ] ; then
       if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
         MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
         retry ${MC} -C ${MC_CONFIG} config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
+        retry ${MC} -C ${MC_CONFIG} config host list ${S3RO} | grep -v SecretKey
         echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
         retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
         ls -al ${INPUT_FILE}
@@ -244,7 +244,7 @@ if [ "${UPLOADFULL:-false}" == "true" ] ; then
       if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
         MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
         retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
+        retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
         retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_S3RW}/
         retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
       else
@@ -278,7 +278,7 @@ if [ -x ${MC} ] ; then
     if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
       MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
       retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      retry ${MC} -C ${MC_CONFIG} config host list | grep -v SecretKey
+      retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
       for i in ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ; do
         retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${i} ${RECO_S3RW}/
       done

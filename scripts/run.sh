@@ -30,7 +30,7 @@ echo "pwd:      $(pwd)"
 echo "site:     ${GLIDEIN_Site:-}"
 echo "resource: ${GLIDEIN_ResourceName:-}"
 echo "http_proxy: ${http_proxy:-}"
-df -h
+df -h --exclude-type=fuse --exclude-type=tmpfs
 ls -al
 eic-info
 

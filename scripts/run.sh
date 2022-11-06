@@ -22,7 +22,8 @@ if [ $# -lt 1 ] ; then
 fi
 
 # Startup
-echo "date:     $(date)"
+echo "date sys: $(date)"
+echo "date web: $(date -d "$(curl -Is --max-redirs 0 google.com 2>&1 | grep Date: | cut -d' ' -f2-7)")"
 echo "hostname: $(hostname -f)"
 echo "uname:    $(uname -a)"
 echo "whoami:   $(whoami)"

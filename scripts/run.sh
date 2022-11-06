@@ -264,7 +264,7 @@ fi
 # Run eicrecon reconstruction
 date
 /usr/bin/time -v \
-  run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon"
+  run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=300 -n=0 -Pjana:timeout=300
 
 # Remove full simulation
 rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root

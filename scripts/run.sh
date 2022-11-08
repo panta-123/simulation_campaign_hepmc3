@@ -33,6 +33,8 @@ echo "resource: ${GLIDEIN_ResourceName:-}"
 echo "http_proxy: ${http_proxy:-}"
 df -h --exclude-type=fuse --exclude-type=tmpfs
 ls -al
+test -f .job.ad && cat .job.ad
+test -f .machine.ad && cat .machine.ad
 eic-info
 
 # Load container environment (include ${DETECTOR_VERSION})

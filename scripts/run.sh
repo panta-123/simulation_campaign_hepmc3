@@ -233,6 +233,7 @@ date
   --skipNEvents ${SKIP_N_EVENTS} \
   --numberOfEvents ${EVENTS_PER_TASK} \
   --part.minimalKineticEnergy 1*TeV \
+  --filter.tracker 'edep0' \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}.xml \
   --inputFiles ${INPUT_TEMP}/${BASENAME}${EXTENSION} \

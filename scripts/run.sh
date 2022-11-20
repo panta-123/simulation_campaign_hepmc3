@@ -221,11 +221,33 @@ fi
 cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
 mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 
+# Remove any output files if they exist
+if [ -x ${MC} ] ; then
+  if [ -n "${ONLINE:-}" ] ; then
+    if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
+      MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
+      retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
+      retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
+      for dir in ${FULL_S3RW} ${RECO_S3RW} ${LOG_S3RW} ; do
+        ${MC} -C ${MC_CONFIG} find --name "${TASKNAME}.*" ${dir} || true
+      done | xargs --no-run-if-empty ${MC} -C ${MC_CONFIG} rm || true
+      retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
+    else
+      echo "No S3 credentials."
+    fi
+  else
+    echo "No internet connection."
+  fi
+fi
+
 # Run simulation
 ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 date
-/usr/bin/time -v \
-  npsim \
+prmon \
+  --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
+  --json-summary ${LOG_TEMP}/${TASKNAME}.npsim.prmon.json \
+  -- \
+npsim \
   --runType batch \
   --random.seed 1 \
   --random.enableEventSeed \
@@ -267,11 +289,13 @@ fi
 
 # Run eicrecon reconstruction
 date
-/usr/bin/time -v \
-  run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=0 -Pjana:timeout=0
-
-# Remove full simulation
-rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+prmon \
+  --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
+  --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \
+  -- \
+run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=0 -Pjana:timeout=0 -Pplugins=janadot
+if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
+ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
 
 } 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.out
 ls -al ${LOG_TEMP}/${TASKNAME}.out
@@ -304,7 +328,12 @@ if [ "${COPYLOG:-false}" == "true" ] ; then
   cp ${LOG_TEMP}/${TASKNAME}.out ${LOG_DIR}
   ls -al ${LOG_DIR}/${TASKNAME}.out
 fi
-rm -f ${RECO_TEMP}/${TASKNAME}*.edm4eic.root
 
 # closeout
 date
+find ${TMPDIR}
+du -sh ${TMPDIR}
+
+# Remove full simulation
+rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+rm -f ${RECO_TEMP}/${TASKNAME}*.edm4eic.root

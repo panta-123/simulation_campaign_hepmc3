@@ -82,6 +82,7 @@ function retry {
 
 # S3 locations
 MC="/usr/local/bin/mc"
+XRDURL="root://dtn-eic.jlab.org//work/eic2/EPIC"
 S3URL="https://dtn01.sdcc.bnl.gov:9000"
 S3RO="S3"
 S3RW="S3rw"
@@ -111,10 +112,12 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-if [[ "${INPUT_FILE}" =~ \.hepmc\.gz ]] ; then
-  EXTENSION=".hepmc.gz"
-elif [[ "${INPUT_FILE}" =~ \.hepmc ]] ; then
-  EXTENSION=".hepmc"
+if [[ "${INPUT_FILE}" =~ \.hepmc3\.tree\.root ]] ; then
+  EXTENSION="${BASH_REMATCH}"
+elif [[ "${INPUT_FILE}" =~ \.hepmc[3]?\.gz ]] ; then
+  EXTENSION="${BASH_REMATCH}"
+elif [[ "${INPUT_FILE}" =~ \.hepmc[3]? ]] ; then
+  EXTENSION="${BASH_REMATCH}"
 else
   echo "Error: ${INPUT_FILE} has unknown extension!"
   exit 1
@@ -184,42 +187,61 @@ export JUGGLER_N_EVENTS=2147483647
 export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.edm4hep.root"
 export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.edm4eic.root"
 
-# Retrieve input file if S3_ACCESS_KEY and S3_SECRET_KEY in environment
-if [ ! -f ${INPUT_FILE} ] ; then
-  if [ -x ${MC} ] ; then
-    if [ -n "${ONLINE:-}" ] ; then
-      if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
-        MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
-        retry ${MC} -C ${MC_CONFIG} config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-        retry ${MC} -C ${MC_CONFIG} config host list ${S3RO} | grep -v SecretKey
-        echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
-        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
-        ls -al ${INPUT_FILE}
-        retry ${MC} -C ${MC_CONFIG} config host remove ${S3RO}
-      else
-        echo "No S3 credentials. Provide (readonly) S3 credentials."
-        exit -1
-      fi
-    else
-      echo "No internet connection. Pre-cache input file."
-      exit -1
+# Retrieve input file if available
+if [ ! -f "${INPUT_FILE}" ] ; then
+  # Fail if not online
+  if [ -z "${ONLINE:-}" ] ; then
+    echo "No internet connection. Pre-cache input file."
+    exit -1
+  else
+    # If hepmc or hepmc.gz file, download from S3
+    if [[ "${EXTENSION}" =~ \.hepmc[3]?$ || "${EXTENSION}" =~ \.hepmc[3]?\.gz$ ]] ; then
+      if [ -x "${MC}" ] ; then
+        if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
+          MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
+          retry ${MC} -C ${MC_CONFIG} config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
+          retry ${MC} -C ${MC_CONFIG} config host list ${S3RO} | grep -v SecretKey
+          echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
+          retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
+          ls -al ${INPUT_FILE}
+          retry ${MC} -C ${MC_CONFIG} config host remove ${S3RO}
+        else
+          echo "No S3 credentials. Provide (readonly) S3 credentials."
+          exit -1
+        fi
+      fi      
     fi
   fi
 fi
-# Copy input to temp location
-if [ ! -f "${INPUT_TEMP}" ] ; then
-  cp -n ${INPUT_FILE} ${INPUT_TEMP}
-fi
 
-# Unzip if needed
-if [[ ${EXTENSION} == ".hepmc.gz" ]] ; then
-  gunzip ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-  EXTENSION=".hepmc"
-fi
+# Move files to temporary location
+if [ -f "${INPUT_FILE}" ] ; then
+  # Copy input to temp location
+  if [ ! -f "${INPUT_TEMP}" ] ; then
+    cp -n ${INPUT_FILE} ${INPUT_TEMP}
+  fi
 
-# Sanitize hepmc
-cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
-mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
+  # Unzip if needed
+  if [[ ${EXTENSION} =~ (.hepmc[3]?)\.gz$ ]] ; then
+    gunzip ${INPUT_TEMP}/${BASENAME}${EXTENSION}
+    EXTENSION=${BASH_REMATCH[1]}
+  fi
+
+  # Sanitize hepmc
+  if [[ ${EXTENSION} =~ \.hepmc[3]?$ ]] ; then
+    cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
+    mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
+  fi
+
+  # Input file points to temporary location
+  ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
+  INPUT_FILE=${INPUT_TEMP}/${BASENAME}${EXTENSION}
+
+# If remote hepmc.tree.root file, use xrootd protocol
+elif [[ "${EXTENSION}" =~ \.hepmc3\.tree\.root$ ]] ; then
+  # Prefix with xrootd protocol and URL
+  INPUT_FILE=${XRDURL}/${INPUT_FILE}
+fi
 
 # Remove any output files if they exist
 if [ -x ${MC} ] ; then
@@ -241,7 +263,6 @@ if [ -x ${MC} ] ; then
 fi
 
 # Run simulation
-ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 date
 prmon \
   --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
@@ -258,10 +279,14 @@ npsim \
   --filter.tracker 'edep0' \
   --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
   --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}.xml \
-  --inputFiles ${INPUT_TEMP}/${BASENAME}${EXTENSION} \
+  --inputFiles ${INPUT_FILE} \
   --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
-rm -f ${INPUT_TEMP}/${BASENAME}${EXTENSION}
 ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+
+# Remove temporary input file again
+if [ -f ${INPUT_FILE} ] ; then
+  rm -f ${INPUT_FILE}
+fi
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
 if [ "${UPLOADFULL:-false}" == "true" ] ; then

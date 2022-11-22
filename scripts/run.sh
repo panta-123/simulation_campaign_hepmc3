@@ -289,7 +289,7 @@ if [ -f ${INPUT_FILE} ] ; then
 fi
 
 # Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-if [ "${UPLOADFULL:-false}" == "true" ] ; then
+if [[ ${UPLOADFULL:-} > 0 && $((TASK % UPLOADFULL)) == 0 ]] ; then
   if [ -x ${MC} ] ; then
     if [ -n "${ONLINE:-}" ] ; then
       if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then

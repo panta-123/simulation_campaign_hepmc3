@@ -354,7 +354,3 @@ fi
 date
 find ${TMPDIR}
 du -sh ${TMPDIR}
-
-# Remove full simulation
-rm -f ${FULL_TEMP}/${TASKNAME}.edm4hep.root
-rm -f ${RECO_TEMP}/${TASKNAME}*.edm4eic.root

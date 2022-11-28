@@ -171,10 +171,6 @@ else
   if which tracepath ; then
     echo "tracepath -b -p 9000 dtn01.sdcc.bnl.gov"
     tracepath -b -p 9000 dtn01.sdcc.bnl.gov
-    echo "tracepath -b www.bnl.gov"
-    tracepath -b www.bnl.gov
-    echo "tracepath -b google.com"
-    tracepath -b google.com
   fi
   export ONLINE=
 fi

@@ -38,9 +38,9 @@ test -f .machine.ad && cat .machine.ad
 eic-info
 
 # Load container environment (include ${DETECTOR_VERSION})
-export CONFIG=${DETECTOR_CONFIG:-}
+export DETECTOR_CONFIG_REQUESTED=${DETECTOR_CONFIG:-}
 source /opt/detector/epic-${DETECTOR_VERSION:-nightly}/setup.sh
-export DETECTOR_CONFIG=epic${CONFIG:+_${CONFIG}}
+export DETECTOR_CONFIG=${DETECTOR_CONFIG_REQUESTED:-${DETECTOR_CONFIG:-$DETECTOR}}
 
 # Argument parsing
 # - input file
@@ -342,11 +342,11 @@ if [ -x ${MC} ] ; then
 fi
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  cp ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}
+  mv ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}
   ls -al ${RECO_DIR}/${TASKNAME}*.edm4eic.root
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  cp ${LOG_TEMP}/${TASKNAME}.* ${LOG_DIR}
+  mv ${LOG_TEMP}/${TASKNAME}.* ${LOG_DIR}
   ls -al ${LOG_DIR}/${TASKNAME}.*
 fi
 

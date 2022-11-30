@@ -23,7 +23,7 @@ fi
 
 # Startup
 echo "date sys: $(date)"
-echo "date web: $(date -d "$(curl -Is --max-redirs 0 google.com 2>&1 | grep Date: | cut -d' ' -f2-7)")"
+echo "date web: $(date -d "$(curl --insecure --head --silent --max-redirs 0 google.com 2>&1 | grep Date: | cut -d' ' -f2-7)")"
 echo "hostname: $(hostname -f)"
 echo "uname:    $(uname -a)"
 echo "whoami:   $(whoami)"
@@ -47,47 +47,23 @@ export DETECTOR_CONFIG=${DETECTOR_CONFIG_REQUESTED:-${DETECTOR_CONFIG:-$DETECTOR
 INPUT_FILE=${1}
 # - number of events
 EVENTS_PER_TASK=${2:-10000}
-# - current chunk
+# - current chunk (zero-based)
 if [ ${#} -lt 3 ] ; then
   TASK=""
   SKIP_N_EVENTS=0
 else
-  TASK=$(printf ".%04d" ${3})
-  SKIP_N_EVENTS=$(((${3}-1)*EVENTS_PER_TASK))
+  # 10-base input task number to 4-zero-padded task number
+  TASK=".${3}"
+  # assumes zero-based task number, can be zero-padded 
+  SKIP_N_EVENTS=$((10#${3}*EVENTS_PER_TASK))
 fi
 
 # Output location
 BASEDIR=${DATADIR:-${PWD}}
 
-# Retry function
-function retry {
-  local n=0
-  local max=5
-  local delay=20
-  while [[ $n -lt $max ]] ; do
-    n=$((n+1))
-    s=0
-    "$@" || s=$?
-    [ $s -eq 0 ] && {
-      return $s
-    }
-    [ $n -ge $max ] && {
-      echo "Failed after $n retries, exiting with $s"
-      return $s
-    }
-    echo "Retrying in $delay seconds..."
-    sleep $delay
-  done
-}
-
-# S3 locations
-MC="/usr/local/bin/mc"
+# XRD and S3 locations
 XRDURL="root://dtn-eic.jlab.org//work/eic2/EPIC"
 S3URL="https://dtn01.sdcc.bnl.gov:9000"
-S3RO="S3"
-S3RW="S3rw"
-S3RODIR="${S3RO}/eictest/EPIC"
-S3RWDIR="${S3RW}/eictest/EPIC"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
@@ -139,27 +115,19 @@ TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
 INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}
 mkdir -p ${INPUT_DIR} ${INPUT_TEMP}
-INPUT_S3RO=${S3RODIR}/EVGEN/${TAG}
-INPUT_S3RO=${INPUT_S3RO//\/\//\/}
 TAG=${DETECTOR_VERSION}/${DETECTOR_CONFIG}/${TAG}
 
 # Output file names
 LOG_DIR=${BASEDIR}/LOG/${TAG}
 LOG_TEMP=${TMPDIR}/LOG/${TAG}
-LOG_S3RW=${S3RWDIR}/LOG/${TAG}
-LOG_S3RW=${LOG_S3RW//\/\//\/}
 mkdir -p ${LOG_DIR} ${LOG_TEMP}
 #
 FULL_DIR=${BASEDIR}/FULL/${TAG}
 FULL_TEMP=${TMPDIR}/FULL/${TAG}
-FULL_S3RW=${S3RWDIR}/FULL/${TAG}
-FULL_S3RW=${FULL_S3RW//\/\//\/}
 mkdir -p ${FULL_DIR} ${FULL_TEMP}
 #
 RECO_DIR=${BASEDIR}/RECO/${TAG}
 RECO_TEMP=${TMPDIR}/RECO/${TAG}
-RECO_S3RW=${S3RWDIR}/RECO/${TAG}
-RECO_S3RW=${RECO_S3RW//\/\//\/}
 mkdir -p ${RECO_DIR} ${RECO_TEMP}
 
 # Internet connectivity check
@@ -175,42 +143,7 @@ else
   export ONLINE=
 fi
 
-# Start logging block
-{
-date
-
-export JUGGLER_N_EVENTS=2147483647
-export JUGGLER_SIM_FILE="${FULL_TEMP}/${TASKNAME}.edm4hep.root"
-export JUGGLER_REC_FILE="${RECO_TEMP}/${TASKNAME}.edm4eic.root"
-
-# Retrieve input file if available
-if [ ! -f "${INPUT_FILE}" ] ; then
-  # Fail if not online
-  if [ -z "${ONLINE:-}" ] ; then
-    echo "No internet connection. Pre-cache input file."
-    exit -1
-  else
-    # If hepmc or hepmc.gz file, download from S3
-    if [[ "${EXTENSION}" =~ \.hepmc[3]?$ || "${EXTENSION}" =~ \.hepmc[3]?\.gz$ ]] ; then
-      if [ -x "${MC}" ] ; then
-        if [ -n "${S3_ACCESS_KEY:-}" -a -n "${S3_SECRET_KEY:-}" ] ; then
-          MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
-          retry ${MC} -C ${MC_CONFIG} config host add ${S3RO} ${S3URL} ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
-          retry ${MC} -C ${MC_CONFIG} config host list ${S3RO} | grep -v SecretKey
-          echo "Downloading hepmc file at ${INPUT_S3RO}/${BASENAME}${EXTENSION}"
-          retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${INPUT_S3RO}/${BASENAME}${EXTENSION} ${INPUT_DIR}
-          ls -al ${INPUT_FILE}
-          retry ${MC} -C ${MC_CONFIG} config host remove ${S3RO}
-        else
-          echo "No S3 credentials. Provide (readonly) S3 credentials."
-          exit -1
-        fi
-      fi      
-    fi
-  fi
-fi
-
-# Move files to temporary location
+# Move input files to temporary location
 if [ -f "${INPUT_FILE}" ] ; then
   # Copy input to temp location
   if [ ! -f "${INPUT_TEMP}" ] ; then
@@ -239,69 +172,29 @@ elif [[ "${EXTENSION}" =~ \.hepmc3\.tree\.root$ ]] ; then
   INPUT_FILE=${XRDURL}/${INPUT_FILE}
 fi
 
-# Remove any output files if they exist
-if [ -x ${MC} ] ; then
-  if [ -n "${ONLINE:-}" ] ; then
-    if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-      MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
-      retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
-      for dir in ${FULL_S3RW} ${RECO_S3RW} ${LOG_S3RW} ; do
-        ${MC} -C ${MC_CONFIG} find --name "${TASKNAME}.*" ${dir} || true
-      done | xargs --no-run-if-empty ${MC} -C ${MC_CONFIG} rm || true
-      retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
-    else
-      echo "No S3 credentials."
-    fi
-  else
-    echo "No internet connection."
-  fi
-fi
-
 # Run simulation
-date
-prmon \
-  --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
-  --json-summary ${LOG_TEMP}/${TASKNAME}.npsim.prmon.json \
-  -- \
-npsim \
-  --runType batch \
-  --random.seed 1 \
-  --random.enableEventSeed \
-  --printLevel WARNING \
-  --skipNEvents ${SKIP_N_EVENTS} \
-  --numberOfEvents ${EVENTS_PER_TASK} \
-  --part.minimalKineticEnergy 1*TeV \
-  --filter.tracker 'edep0' \
-  --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
-  --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}.xml \
-  --inputFiles ${INPUT_FILE} \
-  --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
-ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+{
+  date
+  prmon \
+    --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
+    --json-summary ${LOG_TEMP}/${TASKNAME}.npsim.prmon.json \
+    -- \
+  npsim \
+    --runType batch \
+    --random.seed 1 \
+    --random.enableEventSeed \
+    --printLevel WARNING \
+    --skipNEvents ${SKIP_N_EVENTS} \
+    --numberOfEvents ${EVENTS_PER_TASK} \
+    --part.minimalKineticEnergy 1*TeV \
+    --filter.tracker 'edep0' \
+    --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
+    --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}.xml \
+    --inputFiles ${INPUT_FILE} \
+    --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+  ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
+} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.npsim.log
 
-# Remove temporary input file again
-if [ -f ${INPUT_FILE} ] ; then
-  rm -f ${INPUT_FILE}
-fi
-
-# Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-if [[ ${UPLOADFULL:-} > 0 && $((TASK % UPLOADFULL)) == 0 ]] ; then
-  if [ -x ${MC} ] ; then
-    if [ -n "${ONLINE:-}" ] ; then
-      if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-        MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
-        retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-        retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
-        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_S3RW}/
-        retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
-      else
-        echo "No S3 credentials."
-      fi
-    else
-      echo "No internet connection."
-    fi
-  fi
-fi
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
   cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_DIR}
@@ -309,37 +202,20 @@ if [ "${COPYFULL:-false}" == "true" ] ; then
 fi
 
 # Run eicrecon reconstruction
-date
-prmon \
-  --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
-  --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \
-  -- \
-run_eicrecon_reco_flags.py "${JUGGLER_SIM_FILE}" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=0 -Pjana:timeout=0 -Pplugins=janadot
-if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
-ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
+{
+  date
+  prmon \
+    --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
+    --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \
+    -- \
+  run_eicrecon_reco_flags.py "${FULL_TEMP}/${TASKNAME}.edm4hep.root" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=0 -Pjana:timeout=0 -Pplugins=janadot
+  if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
+  ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
+} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log
 
-} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.out
+# List log files
 ls -al ${LOG_TEMP}/${TASKNAME}.*
 
-# Data egress if S3RW_ACCESS_KEY and S3RW_SECRET_KEY in environment
-if [ -x ${MC} ] ; then
-  if [ -n "${ONLINE:-}" ] ; then
-    if [ -n "${S3RW_ACCESS_KEY:-}" -a -n "${S3RW_SECRET_KEY:-}" ] ; then
-      MC_CONFIG=$(mktemp -d $PWD/mc_config.XXXX)
-      retry ${MC} -C ${MC_CONFIG} config host add ${S3RW} ${S3URL} ${S3RW_ACCESS_KEY} ${S3RW_SECRET_KEY}
-      retry ${MC} -C ${MC_CONFIG} config host list ${S3RW} | grep -v SecretKey
-      for i in ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ; do
-        retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${i} ${RECO_S3RW}/
-      done
-      retry ${MC} -C ${MC_CONFIG} cp --disable-multipart --insecure ${LOG_TEMP}/${TASKNAME}.* ${LOG_S3RW}/
-      retry ${MC} -C ${MC_CONFIG} config host remove ${S3RW}
-    else
-      echo "No S3 credentials."
-    fi
-  else
-    echo "No internet connection."
-  fi
-fi
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
   mv ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}

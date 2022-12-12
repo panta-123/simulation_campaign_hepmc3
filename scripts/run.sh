@@ -49,10 +49,12 @@ EVENTS_PER_TASK=${2:-10000}
 # - current chunk (zero-based)
 if [ ${#} -lt 3 ] ; then
   TASK=""
+  SEED=1
   SKIP_N_EVENTS=0
 else
   # 10-base input task number to 4-zero-padded task number
   TASK=".${3}"
+  SEED=$((10#${3}+1))
   # assumes zero-based task number, can be zero-padded 
   SKIP_N_EVENTS=$((10#${3}*EVENTS_PER_TASK))
 fi
@@ -180,7 +182,7 @@ fi
     -- \
   npsim \
     --runType batch \
-    --random.seed 1 \
+    --random.seed ${SEED:-1} \
     --random.enableEventSeed \
     --printLevel WARNING \
     --skipNEvents ${SKIP_N_EVENTS} \

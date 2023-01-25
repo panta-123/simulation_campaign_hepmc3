@@ -209,7 +209,11 @@ fi
     --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
     --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \
     -- \
-  run_eicrecon_reco_flags.py "${FULL_TEMP}/${TASKNAME}.edm4hep.root" "${RECO_TEMP}/${TASKNAME}.eicrecon" -Pjana:warmup_timeout=0 -Pjana:timeout=0 -Pplugins=janadot
+  eicrecon \
+    -Ppodio:output_file="${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root" \
+    -Pjana:warmup_timeout=0 -Pjana:timeout=0 \
+    -Pplugins=janadot \
+    "${FULL_TEMP}/${TASKNAME}.edm4hep.root"
   if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
   ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
 } 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log

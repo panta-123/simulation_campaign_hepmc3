@@ -34,7 +34,6 @@ df -h --exclude-type=fuse --exclude-type=tmpfs
 ls -al
 test -f .job.ad && cat .job.ad
 test -f .machine.ad && cat .machine.ad
-eic-info
 
 # Load container environment (include ${DETECTOR_VERSION})
 export DETECTOR_CONFIG_REQUESTED=${DETECTOR_CONFIG:-}
@@ -176,6 +175,7 @@ fi
 # Run simulation
 {
   date
+  eic-info
   prmon \
     --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
     --json-summary ${LOG_TEMP}/${TASKNAME}.npsim.prmon.json \
@@ -205,6 +205,7 @@ fi
 # Run eicrecon reconstruction
 {
   date
+  eic-info
   prmon \
     --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
     --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \

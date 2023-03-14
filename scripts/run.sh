@@ -63,7 +63,7 @@ BASEDIR=${DATADIR:-${PWD}}
 
 # XRD and S3 locations
 XRDURL="root://dtn-eic.jlab.org//work/eic2/EPIC"
-S3URL="https://dtn01.sdcc.bnl.gov:9000"
+S3URL="https://eics3.sdcc.bnl.gov:9000"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
@@ -137,8 +137,8 @@ if curl --connect-timeout 30 --retry 5 --silent --show-error ${S3URL} > /dev/nul
 else
   echo "$(hostname) is NOT online."
   if which tracepath ; then
-    echo "tracepath -b -p 9000 dtn01.sdcc.bnl.gov"
-    tracepath -b -p 9000 dtn01.sdcc.bnl.gov
+    echo "tracepath -b -p 9000 eics3.sdcc.bnl.gov"
+    tracepath -b -p 9000 eics3.sdcc.bnl.gov
   fi
   export ONLINE=
 fi

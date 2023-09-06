@@ -190,7 +190,7 @@ fi
     --part.minimalKineticEnergy 1*TeV \
     --filter.tracker 'edep0' \
     --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
-    --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}_${EBEAM}x${PBEAM}.xml \
+    --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}${EBEAM:+${PBEAM:+_${EBEAM}x${PBEAM}}}.xml \
     --inputFiles ${INPUT_FILE} \
     --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root

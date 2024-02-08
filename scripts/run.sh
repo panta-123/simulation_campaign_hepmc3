@@ -62,8 +62,10 @@ fi
 BASEDIR=${DATADIR:-${PWD}}
 
 # XRD and S3 locations
-XRDURL="root://dtn-eic.jlab.org//work/eic2/EPIC"
+EPIC_DIR="/work/eic2/EPIC"
+XRDURL="root://dtn-eic.jlab.org/$EPIC_DIR"
 S3URL="https://eics3.sdcc.bnl.gov:9000"
+XRDWURL="xroots://dtn2201.jlab.org//eic/eic2/EPIC"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
@@ -198,8 +200,8 @@ fi
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_DIR}
-  ls -al ${FULL_DIR}/${TASKNAME}.edm4hep.root
+  xrdcp ${FULL_TEMP}/${TASKNAME}.edm4hep.root $XRDWURL/FULL/${TAG}/${TASKNAME}.edm4hep.root
+  xrdfs $XRDURL ls $EPIC_DIR/FULL/${TAG}/${TASKNAME}.edm4hep.root
 fi
 
 # Run eicrecon reconstruction
@@ -216,7 +218,7 @@ fi
     -Pplugins=janadot \
     "${FULL_TEMP}/${TASKNAME}.edm4hep.root"
   if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
-  ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
+  ls -al ${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root
 } 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
 
 # List log files
@@ -224,12 +226,15 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  mv ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}
-  ls -al ${RECO_DIR}/${TASKNAME}*.edm4eic.root
+  xrdcp ${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root $XRDWURL/RECO/${TAG}/${TASKNAME}.eicrecon.tree.edm4eic.root
+  xrdfs $XRDURL ls $EPIC_DIR/RECO/${TAG}/${TASKNAME}.eicrecon.tree.edm4eic.root
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  mv ${LOG_TEMP}/${TASKNAME}.* ${LOG_DIR}
-  ls -al ${LOG_DIR}/${TASKNAME}.*
+  xrdcp ${LOG_TEMP}/${TASKNAME}.npsim.log $XRDWURL/LOG/${TAG}/${TASKNAME}.npsim.log
+  xrdcp ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt $XRDWURL/LOG/${TAG}/${TASKNAME}.npsim.prmon.txt
+  xrdcp ${LOG_TEMP}/${TASKNAME}.eicrecon.log $XRDWURL/LOG/${TAG}/${TASKNAME}.eicrecon.log
+  xrdcp ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt $XRDWURL/LOG/${TAG}/${TASKNAME}.eicrecon.prmon.txt
+  xrdfs $XRDURL ls $EPIC_DIR/LOG/${TAG}/${TASKNAME}.*
 fi
 
 # closeout

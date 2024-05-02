@@ -72,10 +72,10 @@ echo "SLURM_ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-}"
 echo "SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID:-}"
 echo "_CONDOR_SCRATCH_DIR=${_CONDOR_SCRATCH_DIR:-}"
 echo "OSG_WN_TMP=${OSG_WN_TMP:-}"
-if [ -n "${SLURM_TMPDIR:-}" ] ; then
-  TMPDIR=${SLURM_TMPDIR}
-elif [ -n "${_CONDOR_SCRATCH_DIR:-}" ] ; then
+if [ -n "${_CONDOR_SCRATCH_DIR:-}" ] ; then
   TMPDIR=${_CONDOR_SCRATCH_DIR}
+elif [ -n "${SLURM_TMPDIR:-}" ] ; then
+  TMPDIR=${SLURM_TMPDIR}
 else
   if [ -d "/scratch/slurm/${SLURM_JOB_ID:-}" ] ; then
     TMPDIR="/scratch/slurm/${SLURM_JOB_ID:-}"

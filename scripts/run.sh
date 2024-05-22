@@ -108,51 +108,24 @@ fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
-INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}
-mkdir -p ${INPUT_DIR} ${INPUT_TEMP}
+mkdir -p ${INPUT_DIR}
 TAG=${DETECTOR_VERSION}/${DETECTOR_CONFIG}/${TAG}
 
+# Define location on xrootd from where to stream input file from
+INPUT_FILE=${XRDRURL}/${XRDRBASE}/${INPUT_FILE}
+
 # Output file names
-LOG_DIR=${BASEDIR}/LOG/${TAG}
-LOG_TEMP=${TMPDIR}/LOG/${TAG}
-mkdir -p ${LOG_DIR} ${LOG_TEMP}
+LOG_DIR=LOG/${TAG}
+LOG_TEMP=${TMPDIR}/${LOG_DIR}
+mkdir -p ${LOG_TEMP}
 #
-FULL_DIR=${BASEDIR}/FULL/${TAG}
-FULL_TEMP=${TMPDIR}/FULL/${TAG}
-mkdir -p ${FULL_DIR} ${FULL_TEMP}
+FULL_DIR=FULL/${TAG}
+FULL_TEMP=${TMPDIR}/${FULL_DIR}
+mkdir -p ${FULL_TEMP}
 #
-RECO_DIR=${BASEDIR}/RECO/${TAG}
-RECO_TEMP=${TMPDIR}/RECO/${TAG}
-mkdir -p ${RECO_DIR} ${RECO_TEMP}
-
-# Move input files to temporary location
-if [ -f "${INPUT_FILE}" ] ; then
-  # Copy input to temp location
-  if [ ! -f "${INPUT_TEMP}" ] ; then
-    cp -n ${INPUT_FILE} ${INPUT_TEMP}
-  fi
-
-  # Unzip if needed
-  if [[ ${EXTENSION} =~ (.hepmc[3]?)\.gz$ ]] ; then
-    gunzip ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-    EXTENSION=${BASH_REMATCH[1]}
-  fi
-
-  # Sanitize hepmc
-  if [[ ${EXTENSION} =~ \.hepmc[3]?$ ]] ; then
-    cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
-    mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-  fi
-
-  # Input file points to temporary location
-  ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-  INPUT_FILE=${INPUT_TEMP}/${BASENAME}${EXTENSION}
-
-# If remote hepmc.tree.root file, use xrootd protocol
-elif [[ "${EXTENSION}" =~ \.hepmc3\.tree\.root$ ]] ; then
-  # Prefix with xrootd protocol and URL
-  INPUT_FILE=${XRDURL}/${INPUT_FILE}
-fi
+RECO_DIR=RECO/${TAG}
+RECO_TEMP=${TMPDIR}/${RECO_DIR}
+mkdir -p ${RECO_TEMP}
 
 # Run simulation
 {

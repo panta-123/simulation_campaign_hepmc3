@@ -5,7 +5,7 @@ IFS=$'\n\t'
 
 # Load job environment (mask secrets)
 if ls environment*.sh ; then
-  grep -v TOKEN environment*.sh
+  grep -v BEARER environment*.sh
   source environment*.sh
 fi
 

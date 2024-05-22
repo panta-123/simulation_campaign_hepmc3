@@ -153,8 +153,8 @@ mkdir -p ${RECO_TEMP}
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  xrdcp ${FULL_TEMP}/${TASKNAME}.edm4hep.root $XRDWURL/FULL/${TAG}/${TASKNAME}.edm4hep.root
-  xrdfs $XRDURL ls $EPIC_DIR/FULL/${TAG}/${TASKNAME}.edm4hep.root
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR}
+  xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR}
 fi
 
 # Run eicrecon reconstruction
@@ -179,15 +179,12 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  xrdcp ${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root $XRDWURL/RECO/${TAG}/${TASKNAME}.eicrecon.tree.edm4eic.root
-  xrdfs $XRDURL ls $EPIC_DIR/RECO/${TAG}/${TASKNAME}.eicrecon.tree.edm4eic.root
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR}
+  xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR}
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  xrdcp ${LOG_TEMP}/${TASKNAME}.npsim.log $XRDWURL/LOG/${TAG}/${TASKNAME}.npsim.log
-  xrdcp ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt $XRDWURL/LOG/${TAG}/${TASKNAME}.npsim.prmon.txt
-  xrdcp ${LOG_TEMP}/${TASKNAME}.eicrecon.log $XRDWURL/LOG/${TAG}/${TASKNAME}.eicrecon.log
-  xrdcp ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt $XRDWURL/LOG/${TAG}/${TASKNAME}.eicrecon.prmon.txt
-  xrdfs $XRDURL ls $EPIC_DIR/LOG/${TAG}/${TASKNAME}.*
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR}
+  xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
 fi
 
 # closeout

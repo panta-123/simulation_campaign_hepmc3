@@ -149,7 +149,7 @@ mkdir -p ${RECO_TEMP}
     --inputFiles ${INPUT_FILE} \
     --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
-} 2>&1 | grep -v TOKEN | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
+} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
@@ -172,7 +172,7 @@ fi
     "${FULL_TEMP}/${TASKNAME}.edm4hep.root"
   if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
   ls -al ${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root
-} 2>&1 | grep -v TOKEN | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
+} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
 
 # List log files
 ls -al ${LOG_TEMP}/${TASKNAME}.*

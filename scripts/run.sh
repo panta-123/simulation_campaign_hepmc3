@@ -134,19 +134,6 @@ RECO_DIR=${BASEDIR}/RECO/${TAG}
 RECO_TEMP=${TMPDIR}/RECO/${TAG}
 mkdir -p ${RECO_DIR} ${RECO_TEMP}
 
-# Internet connectivity check
-if curl --connect-timeout 30 --retry 5 --silent --show-error ${S3URL} > /dev/null ; then
-  echo "$(hostname) is online."
-  export ONLINE=true
-else
-  echo "$(hostname) is NOT online."
-  if which tracepath ; then
-    echo "tracepath -b -p 9000 eics3.sdcc.bnl.gov"
-    tracepath -b -p 9000 eics3.sdcc.bnl.gov
-  fi
-  export ONLINE=
-fi
-
 # Move input files to temporary location
 if [ -f "${INPUT_FILE}" ] ; then
   # Copy input to temp location

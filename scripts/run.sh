@@ -92,16 +92,7 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-if [[ "${INPUT_FILE}" =~ \.hepmc3\.tree\.root ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-elif [[ "${INPUT_FILE}" =~ \.hepmc[3]?\.gz ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-elif [[ "${INPUT_FILE}" =~ \.hepmc[3]? ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-else
-  echo "Error: ${INPUT_FILE} has unknown extension!"
-  exit 1
-fi
+EXTENSION="hepmc3.tree.root"
 BASENAME=$(basename ${INPUT_FILE} ${EXTENSION})
 TASKNAME=${BASENAME}${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))

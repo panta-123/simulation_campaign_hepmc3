@@ -61,11 +61,13 @@ fi
 # Output location
 BASEDIR=${DATADIR:-${PWD}}
 
-# XRD and S3 locations
-EPIC_DIR="/work/eic2/EPIC"
-XRDURL="root://dtn-eic.jlab.org/$EPIC_DIR"
-S3URL="https://eics3.sdcc.bnl.gov:9000"
-XRDWURL="xroots://dtn2201.jlab.org//eic/eic2/EPIC"
+# XRD Write locations
+XRDWURL="xroots://dtn2201.jlab.org/"
+XRDWBASE=${XRDWBASE:-"/eic/eic2/EPIC/xrdtest"}
+
+# XRD Read locations
+XRDRURL="root://dtn-eic.jlab.org/"
+XRDRBASE="/work/eic2/EPIC"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"

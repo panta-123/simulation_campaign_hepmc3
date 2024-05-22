@@ -15,7 +15,7 @@ run_hepmc3_local_hepmc:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
@@ -23,7 +23,7 @@ run_hepmc3_local_hepmc_0001:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20 0000
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20 0000
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.0000.eicrecon.tree.edm4eic.root
 
@@ -31,7 +31,7 @@ run_hepmc3_local:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
@@ -39,7 +39,7 @@ run_hepmc3_local_hepmc3:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
@@ -48,7 +48,7 @@ run_hepmc3_local_hepmc3_gz:
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3
     - gzip EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.gz 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.gz 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
@@ -56,7 +56,7 @@ run_hepmc3_root_local:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
@@ -64,20 +64,20 @@ run_hepmc3_root_local_0001:
   extends: .test
   script:
     - mkdir -p EVGEN/CI/ && cp -f test/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root EVGEN/CI/
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20 0000
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20 0000
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.0000.eicrecon.tree.edm4eic.root
 
 run_hepmc3_root_remote:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.eicrecon.tree.edm4eic.root
 
 run_hepmc3_root_remote_0001:
   extends: .test
   script:
-    - COPYRECO=true scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20 0000
+    - scripts/run.sh EVGEN/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.hepmc3.tree.root 20 0000
     - ls -al RECO/*/*/CI/
     - test -f RECO/*/*/CI/pythia8NCDIS_5x41_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1_20ev.0000.eicrecon.tree.edm4eic.root

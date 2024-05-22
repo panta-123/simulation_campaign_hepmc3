@@ -5,7 +5,7 @@ IFS=$'\n\t'
 
 # Load job environment (mask secrets)
 if ls environment*.sh ; then
-  grep -v SECRET environment*.sh
+  grep -v BEARER environment*.sh
   source environment*.sh
 fi
 
@@ -61,9 +61,13 @@ fi
 # Output location
 BASEDIR=${DATADIR:-${PWD}}
 
-# XRD and S3 locations
-XRDURL="root://dtn-eic.jlab.org//work/eic2/EPIC"
-S3URL="https://eics3.sdcc.bnl.gov:9000"
+# XRD Write locations
+XRDWURL="xroots://dtn2201.jlab.org/"
+XRDWBASE=${XRDWBASE:-"/eic/eic2/EPIC/xrdtest"}
+
+# XRD Read locations
+XRDRURL="root://dtn-eic.jlab.org/"
+XRDRBASE="/work/eic2/EPIC"
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"
@@ -88,16 +92,7 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-if [[ "${INPUT_FILE}" =~ \.hepmc3\.tree\.root ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-elif [[ "${INPUT_FILE}" =~ \.hepmc[3]?\.gz ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-elif [[ "${INPUT_FILE}" =~ \.hepmc[3]? ]] ; then
-  EXTENSION="${BASH_REMATCH}"
-else
-  echo "Error: ${INPUT_FILE} has unknown extension!"
-  exit 1
-fi
+EXTENSION="hepmc3.tree.root"
 BASENAME=$(basename ${INPUT_FILE} ${EXTENSION})
 TASKNAME=${BASENAME}${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))
@@ -113,64 +108,24 @@ fi
 INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
-INPUT_TEMP=${TMPDIR}/EVGEN/${TAG}
-mkdir -p ${INPUT_DIR} ${INPUT_TEMP}
+mkdir -p ${INPUT_DIR}
 TAG=${DETECTOR_VERSION}/${DETECTOR_CONFIG}/${TAG}
 
+# Define location on xrootd from where to stream input file from
+INPUT_FILE=${XRDRURL}/${XRDRBASE}/${INPUT_FILE}
+
 # Output file names
-LOG_DIR=${BASEDIR}/LOG/${TAG}
-LOG_TEMP=${TMPDIR}/LOG/${TAG}
-mkdir -p ${LOG_DIR} ${LOG_TEMP}
+LOG_DIR=LOG/${TAG}
+LOG_TEMP=${TMPDIR}/${LOG_DIR}
+mkdir -p ${LOG_TEMP}
 #
-FULL_DIR=${BASEDIR}/FULL/${TAG}
-FULL_TEMP=${TMPDIR}/FULL/${TAG}
-mkdir -p ${FULL_DIR} ${FULL_TEMP}
+FULL_DIR=FULL/${TAG}
+FULL_TEMP=${TMPDIR}/${FULL_DIR}
+mkdir -p ${FULL_TEMP}
 #
-RECO_DIR=${BASEDIR}/RECO/${TAG}
-RECO_TEMP=${TMPDIR}/RECO/${TAG}
-mkdir -p ${RECO_DIR} ${RECO_TEMP}
-
-# Internet connectivity check
-if curl --connect-timeout 30 --retry 5 --silent --show-error ${S3URL} > /dev/null ; then
-  echo "$(hostname) is online."
-  export ONLINE=true
-else
-  echo "$(hostname) is NOT online."
-  if which tracepath ; then
-    echo "tracepath -b -p 9000 eics3.sdcc.bnl.gov"
-    tracepath -b -p 9000 eics3.sdcc.bnl.gov
-  fi
-  export ONLINE=
-fi
-
-# Move input files to temporary location
-if [ -f "${INPUT_FILE}" ] ; then
-  # Copy input to temp location
-  if [ ! -f "${INPUT_TEMP}" ] ; then
-    cp -n ${INPUT_FILE} ${INPUT_TEMP}
-  fi
-
-  # Unzip if needed
-  if [[ ${EXTENSION} =~ (.hepmc[3]?)\.gz$ ]] ; then
-    gunzip ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-    EXTENSION=${BASH_REMATCH[1]}
-  fi
-
-  # Sanitize hepmc
-  if [[ ${EXTENSION} =~ \.hepmc[3]?$ ]] ; then
-    cat ${INPUT_TEMP}/${BASENAME}${EXTENSION} | sanitize_hepmc3 > ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new
-    mv ${INPUT_TEMP}/${BASENAME}${EXTENSION}.new ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-  fi
-
-  # Input file points to temporary location
-  ls -al ${INPUT_TEMP}/${BASENAME}${EXTENSION}
-  INPUT_FILE=${INPUT_TEMP}/${BASENAME}${EXTENSION}
-
-# If remote hepmc.tree.root file, use xrootd protocol
-elif [[ "${EXTENSION}" =~ \.hepmc3\.tree\.root$ ]] ; then
-  # Prefix with xrootd protocol and URL
-  INPUT_FILE=${XRDURL}/${INPUT_FILE}
-fi
+RECO_DIR=RECO/${TAG}
+RECO_TEMP=${TMPDIR}/${RECO_DIR}
+mkdir -p ${RECO_TEMP}
 
 # Run simulation
 {
@@ -194,12 +149,12 @@ fi
     --inputFiles ${INPUT_FILE} \
     --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root
-} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
+} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${FULL_DIR}
-  ls -al ${FULL_DIR}/${TASKNAME}.edm4hep.root
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR}
+  xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR}
 fi
 
 # Run eicrecon reconstruction
@@ -216,20 +171,20 @@ fi
     -Pplugins=janadot \
     "${FULL_TEMP}/${TASKNAME}.edm4hep.root"
   if [ -f jana.dot ] ; then mv jana.dot ${LOG_TEMP}/${TASKNAME}.eicrecon.dot ; fi
-  ls -al ${RECO_TEMP}/${TASKNAME}*.eicrecon.tree.edm4eic.root
-} 2>&1 | grep -v SECRET_KEY | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
+  ls -al ${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root
+} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
 
 # List log files
 ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  mv ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${RECO_DIR}
-  ls -al ${RECO_DIR}/${TASKNAME}*.edm4eic.root
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR}
+  xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR}
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  mv ${LOG_TEMP}/${TASKNAME}.* ${LOG_DIR}
-  ls -al ${LOG_DIR}/${TASKNAME}.*
+  xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR}
+  xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
 fi
 
 # closeout

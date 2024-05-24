@@ -92,7 +92,7 @@ mkdir -p ${TMPDIR}
 ls -al ${TMPDIR}
 
 # Input file parsing
-EXTENSION="hepmc3.tree.root"
+EXTENSION=".hepmc3.tree.root"
 BASENAME=$(basename ${INPUT_FILE} ${EXTENSION})
 TASKNAME=${BASENAME}${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))

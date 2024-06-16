@@ -155,7 +155,7 @@ mkdir -p ${RECO_TEMP} ${BASEDIR}/${RECO_DIR}
 if [ "${COPYFULL:-false}" == "true" ] ; then
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server" 
   xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} || \
-  cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${BASEDIR}/${FULL_DIR} | true
+  cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${BASEDIR}/${FULL_DIR} || true
 fi
 
 # Run eicrecon reconstruction
@@ -182,12 +182,12 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 if [ "${COPYRECO:-false}" == "true" ] ; then
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
   xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR} || \
-  cp ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${BASEDIR}/${RECO_DIR} | true
+  cp ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${BASEDIR}/${RECO_DIR} || true
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
   xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR} || \
-  cp ${LOG_TEMP}/${TASKNAME}.* ${BASEDIR}/${LOG_DIR} | true
+  cp ${LOG_TEMP}/${TASKNAME}.* ${BASEDIR}/${LOG_DIR} || true
 fi
 
 # closeout

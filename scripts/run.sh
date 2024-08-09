@@ -9,6 +9,9 @@ if ls environment*.sh ; then
   source environment*.sh
 fi
 
+# Token for write authentication
+export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
+
 # Check arguments
 if [ $# -lt 1 ] ; then
   echo "Usage: "

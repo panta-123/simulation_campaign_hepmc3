@@ -9,9 +9,6 @@ if ls environment*.sh ; then
   source environment*.sh
 fi
 
-# Token for write authentication
-export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
-
 # Check arguments
 if [ $# -lt 1 ] ; then
   echo "Usage: "
@@ -156,6 +153,8 @@ mkdir -p ${RECO_TEMP} ${BASEDIR}/${RECO_DIR}
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
+  # Token for write authentication
+  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server" 
   xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} || \
   cp ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${BASEDIR}/${FULL_DIR} || true
@@ -183,11 +182,15 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
+  # Token for write authentication
+  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
   xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR} || \
   cp ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${BASEDIR}/${RECO_DIR} || true
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
+  # Token for write authentication
+  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
   xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
   xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR} || \
   cp ${LOG_TEMP}/${TASKNAME}.* ${BASEDIR}/${LOG_DIR} || true

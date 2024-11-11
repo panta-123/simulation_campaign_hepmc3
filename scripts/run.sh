@@ -144,7 +144,6 @@ mkdir -p ${RECO_TEMP} ${BASEDIR}/${RECO_DIR}
     --printLevel WARNING \
     --skipNEvents ${SKIP_N_EVENTS} \
     --numberOfEvents ${EVENTS_PER_TASK} \
-    --part.minimalKineticEnergy 1*TeV \
     --filter.tracker 'edep0' \
     --hepmc3.useHepMC3 ${USEHEPMC3:-true} \
     --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}${EBEAM:+${PBEAM:+_${EBEAM}x${PBEAM}}}.xml \

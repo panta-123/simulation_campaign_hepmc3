@@ -1,4 +1,4 @@
-image: eicweb.phy.anl.gov:4567/eic/juggler/juggler:latest
+image: eicweb.phy.anl.gov:4567/containers/eic_container/eic_xl:nightly
 
 stages:
   - test
@@ -9,7 +9,7 @@ stages:
     matrix:
       - TAG:
         - "nightly"
-  image: eicweb.phy.anl.gov:4567/containers/eic_container/jug_xl:${TAG}
+  image: eicweb.phy.anl.gov:4567/containers/eic_container/eic_xl:${TAG}
 
 run_hepmc3_local_hepmc:
   extends: .test

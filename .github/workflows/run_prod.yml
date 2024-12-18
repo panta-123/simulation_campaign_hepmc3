@@ -11,13 +11,11 @@ jobs:
     # Note: this workflow must run on linux 
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: cvmfs-contrib/github-action-cvmfs@v2
-      with:
-        cvmfs_repositories: 'singularity.opensciencegrid.org'
+    - uses: actions/checkout@v3
+    - uses: cvmfs-contrib/github-action-cvmfs@v3
     - uses: eic/run-cvmfs-osg-eic-shell@main
       with:
-        release-platform: "jug_xl:nightly"
+        platform-release: "jug_xl:nightly"
         run: |
           eic-info
 

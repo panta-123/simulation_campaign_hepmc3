@@ -2,10 +2,13 @@ name: Test running script for production
 
 on:
   push:
-    branches: [  "feature-merge-hepmc3-and-singles-submission" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: 
+      - '*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+      
 jobs:
   build-and-run:
     # Note: this workflow must run on linux 

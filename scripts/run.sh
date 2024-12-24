@@ -169,6 +169,7 @@ mkdir -p ${RECO_TEMP}
   prmon \
     --filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
     --json-summary ${LOG_TEMP}/${TASKNAME}.npsim.prmon.json \
+    --log-filename ${LOG_TEMP}/${TASKNAME}.npsim.prmon.log \
     -- \
   npsim "${common_flags[@]}" "${uncommon_flags[@]}"
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root  
@@ -193,6 +194,7 @@ fi
   prmon \
     --filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
     --json-summary ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.json \
+    --log-filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.log \
     -- \
   eicrecon \
     -Ppodio:output_file="${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root" \

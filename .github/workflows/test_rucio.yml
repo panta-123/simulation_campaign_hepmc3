@@ -1,0 +1,33 @@
+name: Test upload to rucio
+
+on:
+  schedule:
+    - cron: '0 0 1,15 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+      
+jobs:
+  rucio-upload:
+    # Note: this workflow must run on linux 
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cvmfs-contrib/github-action-cvmfs@v3
+    - uses: eic/run-cvmfs-osg-eic-shell@main
+      env:
+          X509_PROXY: ${{ secrets.X509_PROXY }} 
+      with:
+        platform-release: "jug_xl:nightly"
+        run: |
+          # Generate a timestamp
+          timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
+          eic-info > eic-info_${timestamp}.txt
+          echo "${X509_PROXY}" > x509_user_proxy
+          
+          # Test rucio upload script
+          export X509_USER_PROXY=x509_user_proxy
+          #RUCIO_CONFIG=scripts/rucio.cfg rucio -vv upload --rse EIC-XRD --scope epic --name /main/CI/Rucio/eic-info_${timestamp}.txt eic-info_${timestamp}.txt
+          RUCIO_CONFIG=scripts/rucio.cfg python scripts/register_to_rucio.py -f "eic-info_${timestamp}.txt" -d "/main/CI/Rucio/eic-info_${timestamp}.txt" -s epic

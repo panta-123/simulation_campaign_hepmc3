@@ -3,6 +3,8 @@
 import argparse
 import os
 from rucio.client.uploadclient import UploadClient
+from rucio.common.exception import InputValidationError, RSEWriteBlocked, NoFilesUploaded, NotAllFilesUploaded
+import logging
 
 parser = argparse.ArgumentParser(prog='Register to RUCIO', description='Registers files to RUCIO')
 parser.add_argument("-f", dest="file_path", action="store", required=True, help="Enter the local file path")
@@ -25,5 +27,8 @@ uploads_items = [{
         'dataset_name': parent_directory
 }]
 
-upload_client = UploadClient()
+logger = logging.getLogger('upload_client')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+upload_client=UploadClient(logger=logger)
 upload_client.upload(uploads_items)

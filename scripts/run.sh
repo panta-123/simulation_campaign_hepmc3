@@ -41,6 +41,8 @@ export DETECTOR_VERSION_REQUESTED=${DETECTOR_VERSION:-main}
 source /opt/detector/epic-${DETECTOR_VERSION_REQUESTED}/bin/thisepic.sh
 export DETECTOR_VERSION=${DETECTOR_VERSION_REQUESTED}
 export DETECTOR_CONFIG=${DETECTOR_CONFIG_REQUESTED:-${DETECTOR_CONFIG:-$DETECTOR}}
+export SCRIPT_DIR=$(realpath $(dirname $0))
+export RUCIO_CONFIG=$SCRIPT_DIR/rucio.cfg
 
 # Argument parsing
 # - input file basename
@@ -97,7 +99,7 @@ ls -al ${TMPDIR}
 
 # Input file parsing
 INPUT_FILE=${BASENAME}.${EXTENSION}
-TASKNAME=$(basename ${BASENAME})${TASK}
+TASKNAME=${TAG_SUFFIX:+${TAG_SUFFIX}_}$(basename ${BASENAME})${TASK}
 INPUT_DIR=$(dirname $(realpath --canonicalize-missing --relative-to=${BASEDIR} ${INPUT_FILE}))
 # - file.hepmc              -> TAG="", and avoid double // in S3 location
 # - EVGEN/file.hepmc        -> TAG="", and avoid double // in S3 location
@@ -112,7 +114,7 @@ INPUT_PREFIX=${INPUT_DIR/\/*/}
 TAG=${INPUT_DIR/${INPUT_PREFIX}\//}
 INPUT_DIR=${BASEDIR}/EVGEN/${TAG}
 mkdir -p ${INPUT_DIR}
-TAG=${DETECTOR_VERSION:-main}/${DETECTOR_CONFIG}/${TAG}
+TAG=${DETECTOR_VERSION:-main}/${DETECTOR_CONFIG}/${TAG_PREFIX:+${TAG_PREFIX}/}${TAG}
 
 if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
   # Define location on xrootd from where to stream input file from
@@ -177,14 +179,18 @@ mkdir -p ${RECO_TEMP}
 
 # Data egress to directory
 if [ "${COPYFULL:-false}" == "true" ] ; then
-  # Token for write authentication
-  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
-  if [ -n ${XRDWURL} ] ; then
-    xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+  if [ "${USERUCIO:-false}" == "true" ] ; then
+    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic
   else
-    mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+    # Token for write authentication
+    export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
+    if [ -n ${XRDWURL} ] ; then
+      xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+    else
+      mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+    fi
+    xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} 
   fi
-  xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} 
 fi
 
 # Run eicrecon reconstruction
@@ -210,18 +216,22 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
 if [ "${COPYRECO:-false}" == "true" ] ; then
-  # Token for write authentication
-  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
-  if [ -n ${XRDWURL} ] ; then
-    xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
+  if [ "${USERUCIO:-false}" == "true" ] ; then
+    python $SCRIPT_DIR/register_to_rucio.py -f "${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root" -d "/${RECO_DIR}/${TASKNAME}.eicrecon.tree.edm4eic.root" -s epic
   else
-    mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
+    # Token for write authentication
+    export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
+    if [ -n ${XRDWURL} ] ; then
+      xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
+    else
+      mkdir -p ${XRDWBASE}/${RECO_DIR} || echo "Cannot write reconstructed outputs to xrootd server"
+    fi
+    xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR}
   fi
-  xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR} 
 fi
 if [ "${COPYLOG:-false}" == "true" ] ; then
   # Token for write authentication
-  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS}/eic.use)
+  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
   if [ -n ${XRDWURL} ] ; then
     xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
   else

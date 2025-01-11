@@ -177,22 +177,6 @@ mkdir -p ${RECO_TEMP}
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root  
 } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
 
-# Data egress to directory
-if [ "${COPYFULL:-false}" == "true" ] ; then
-  if [ "${USERUCIO:-false}" == "true" ] ; then
-    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic
-  else
-    # Token for write authentication
-    export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
-    if [ -n ${XRDWURL} ] ; then
-      xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
-    else
-      mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
-    fi
-    xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} 
-  fi
-fi
-
 # Run eicrecon reconstruction
 {
   date
@@ -215,6 +199,33 @@ fi
 ls -al ${LOG_TEMP}/${TASKNAME}.*
 
 # Data egress to directory
+
+if [ "${COPYLOG:-false}" == "true" ] ; then
+  # Token for write authentication
+  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
+  if [ -n ${XRDWURL} ] ; then
+    xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
+  else
+    mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
+  fi
+  xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
+fi
+
+if [ "${COPYFULL:-false}" == "true" ] ; then
+  if [ "${USERUCIO:-false}" == "true" ] ; then
+    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic
+  else
+    # Token for write authentication
+    export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
+    if [ -n ${XRDWURL} ] ; then
+      xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+    else
+      mkdir -p ${XRDWBASE}/${FULL_DIR} || echo "Cannot write simulation outputs to xrootd server"
+    fi
+    xrdcp --force --recursive ${FULL_TEMP}/${TASKNAME}.edm4hep.root ${XRDWURL}/${XRDWBASE}/${FULL_DIR} 
+  fi
+fi
+
 if [ "${COPYRECO:-false}" == "true" ] ; then
   if [ "${USERUCIO:-false}" == "true" ] ; then
     python $SCRIPT_DIR/register_to_rucio.py -f "${RECO_TEMP}/${TASKNAME}.eicrecon.tree.edm4eic.root" -d "/${RECO_DIR}/${TASKNAME}.eicrecon.tree.edm4eic.root" -s epic
@@ -228,16 +239,6 @@ if [ "${COPYRECO:-false}" == "true" ] ; then
     fi
     xrdcp --force --recursive ${RECO_TEMP}/${TASKNAME}*.edm4eic.root ${XRDWURL}/${XRDWBASE}/${RECO_DIR}
   fi
-fi
-if [ "${COPYLOG:-false}" == "true" ] ; then
-  # Token for write authentication
-  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
-  if [ -n ${XRDWURL} ] ; then
-    xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
-  else
-    mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
-  fi
-  xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
 fi
 
 # closeout

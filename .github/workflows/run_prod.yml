@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build-and-run:
     # Note: this workflow must run on linux 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v3
     - uses: cvmfs-contrib/github-action-cvmfs@v3
@@ -24,7 +24,7 @@ jobs:
       env:
           X509_PROXY: ${{ secrets.X509_PROXY }} 
       with:
-        platform-release: "jug_xl:nightly"
+        platform-release: "eic_xl:nightly"
         run: |
           eic-info
           # Generate a timestamp

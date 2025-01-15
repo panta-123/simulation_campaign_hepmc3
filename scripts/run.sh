@@ -201,19 +201,22 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 # Data egress to directory
 
 if [ "${COPYLOG:-false}" == "true" ] ; then
-  # Token for write authentication
-  export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
-  if [ -n ${XRDWURL} ] ; then
-    xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
+  if [ "${USERUCIO:-false}" == "true" ] ; then
+    python $SCRIPT_DIR/register_to_rucio.py -f "${LOG_TEMP}/${TASKNAME}.*" -d  "${LOG_DIR}" -s epic -rse EIC-CLOUD-LOG
   else
-    mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
-  fi
-  xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
+    # Token for write authentication
+    export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)
+    if [ -n ${XRDWURL} ] ; then
+      xrdfs ${XRDWURL} mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
+    else
+      mkdir -p ${XRDWBASE}/${LOG_DIR} || echo "Cannot write log outputs to xrootd server"
+    fi
+    xrdcp --force --recursive ${LOG_TEMP}/${TASKNAME}.* ${XRDWURL}/${XRDWBASE}/${LOG_DIR}
 fi
 
 if [ "${COPYFULL:-false}" == "true" ] ; then
   if [ "${USERUCIO:-false}" == "true" ] ; then
-    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic
+    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic -rse EIC-XRD
   else
     # Token for write authentication
     export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)

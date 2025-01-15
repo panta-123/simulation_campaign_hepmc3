@@ -40,7 +40,7 @@ jobs:
           TAG_PREFIX="CI/${timestamp}" \
           TAG_SUFFIX="CI_${timestamp}" \
           COPYRECO=true \
-          COPYLOG=false \
+          COPYLOG=true \
           USERUCIO=true \
           scripts/run.sh EVGEN/DIS/NC/18x275/minQ2=1/pythia8NCDIS_18x275_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1 hepmc3.tree.root 10
 
@@ -50,6 +50,6 @@ jobs:
           TAG_PREFIX="CI/${timestamp}" \
           TAG_SUFFIX="CI_${timestamp}" \
           COPYRECO=true \
-          COPYLOG=false \
+          COPYLOG=true \
           USERUCIO=true \
           scripts/run.sh EVGEN/SINGLE/e+/100MeV/130to177deg/e+_100MeV_130to177deg	steer 10

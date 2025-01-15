@@ -10,13 +10,15 @@ parser = argparse.ArgumentParser(prog='Register to RUCIO', description='Register
 parser.add_argument("-f", dest="file_path", action="store", required=True, help="Enter the local file path")
 parser.add_argument("-d", dest="did_name", action="store", required=True, help="Enter the data identifier for rucio catalogue")  
 parser.add_argument("-s", dest="scope", action="store", required=True, help="Enter the scope")
+parser.add_argument("-r", dest="rse", action="store", required=True, help="Enter the rucio storage element. EIC-XRD is for storing production outputs.")
+
 args=parser.parse_args()
 
 file_path = args.file_path
 did_name = args.did_name
 parent_directory = os.path.dirname(did_name)
 scope= args.scope
-rse="EIC-XRD"  
+rse= args.rse   
 
 uploads_items = [{
         'path': file_path,

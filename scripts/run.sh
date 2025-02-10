@@ -148,6 +148,7 @@ mkdir -p ${RECO_TEMP}
     --printLevel WARNING
     --filter.tracker 'edep0'
     --numberOfEvents ${EVENTS_PER_TASK}
+    --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}${EBEAM:+${PBEAM:+_${EBEAM}x${PBEAM}}}.xml
     --outputFile ${FULL_TEMP}/${TASKNAME}.edm4hep.root
   )
   # Uncommon flags based on EXTENSION
@@ -156,7 +157,6 @@ mkdir -p ${RECO_TEMP}
       --runType batch
       --skipNEvents ${SKIP_N_EVENTS}
       --hepmc3.useHepMC3 ${USEHEPMC3:-true}
-      --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}${EBEAM:+${PBEAM:+_${EBEAM}x${PBEAM}}}.xml
       --inputFiles ${INPUT_FILE}
     )
   else
@@ -164,7 +164,6 @@ mkdir -p ${RECO_TEMP}
       --runType run
       --enableGun
       --steeringFile ${INPUT_FILE}
-      --compactFile ${DETECTOR_PATH}/${DETECTOR_CONFIG}.xml
     )
   fi
   # Run npsim with both common and uncommon flags
@@ -187,6 +186,7 @@ mkdir -p ${RECO_TEMP}
     --log-filename ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.log \
     -- \
   eicrecon \
+    -Pdd4hep:xml_files="${DETECTOR_PATH}/${DETECTOR_CONFIG}${EBEAM:+${PBEAM:+_${EBEAM}x${PBEAM}}}.xml" \
     -Ppodio:output_file="${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root" \
     -Pjana:warmup_timeout=0 -Pjana:timeout=0 \
     -Pplugins=janadot \

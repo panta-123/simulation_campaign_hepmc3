@@ -35,6 +35,8 @@ jobs:
           export X509_USER_PROXY=x509_user_proxy
           
           # Test running hepmc3 file
+          EBEAM=18 \
+          PBEAM=275 \
           DETECTOR_CONFIG="epic_craterlake" \
           DETECTOR_VERSION="main" \
           TAG_PREFIX="CI/${timestamp}" \
@@ -45,6 +47,8 @@ jobs:
           scripts/run.sh EVGEN/DIS/NC/18x275/minQ2=1/pythia8NCDIS_18x275_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1 hepmc3.tree.root 10
 
           # Test running singles file
+          EBEAM=5 \
+          PBEAM=41 \
           DETECTOR_CONFIG="epic_craterlake" \
           DETECTOR_VERSION="main" \
           TAG_PREFIX="CI/${timestamp}" \

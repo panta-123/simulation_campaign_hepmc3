@@ -203,9 +203,15 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 if [ "${COPYLOG:-false}" == "true" ] ; then
   if [ "${USERUCIO:-false}" == "true" ] ; then
     TIME_TAG=$(date --iso-8601=second)
+    tar -czvf ${LOG_TEMP}/${TASKNAME}.log.tar.gz \
+    ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
+    ${LOG_TEMP}/${TASKNAME}.npsim.log \
+    ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
+    ${LOG_TEMP}/${TASKNAME}.eicrecon.log \
+    ${LOG_TEMP}/${TASKNAME}.eicrecon.dot
     python $SCRIPT_DIR/register_to_rucio.py \
-    -f "${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt" "${LOG_TEMP}/${TASKNAME}.npsim.log" "${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt" "${LOG_TEMP}/${TASKNAME}.eicrecon.log" "${LOG_TEMP}/${TASKNAME}.eicrecon.dot" \
-    -d "/${LOG_DIR}/${TASKNAME}.npsim.prmon.${TIME_TAG}.txt" "/${LOG_DIR}/${TASKNAME}.npsim.${TIME_TAG}.log" "/${LOG_DIR}/${TASKNAME}.eicrecon.prmon.${TIME_TAG}.txt" "/${LOG_DIR}/${TASKNAME}.eicrecon.${TIME_TAG}.log" "/${LOG_DIR}/${TASKNAME}.eicrecon.${TIME_TAG}.dot" \
+    -f "${LOG_TEMP}/${TASKNAME}.log.tar.gz" \
+    -d "/${LOG_DIR}/${TASKNAME}.${TIME_TAG}.log.tar.gz" \
     -s epic -r EIC-CLOUD-LOG
   else
     # Token for write authentication

@@ -11,13 +11,15 @@ parser.add_argument("-f", dest="file_paths", action="store", nargs='+', required
 parser.add_argument("-d", dest="did_names", action="store", nargs='+', required=True, help="Enter the data identifier for rucio catalogue")  
 parser.add_argument("-s", dest="scope", action="store", required=True, help="Enter the scope")
 parser.add_argument("-r", dest="rse", action="store", required=True, help="Enter the rucio storage element. EIC-XRD is for storing production outputs.")
+parser.add_argument('-noregister', dest="noregister", action="store_true", default=False, help="Specify if rucio registration should be skipped")
 
 args=parser.parse_args()
 
 file_paths = args.file_paths
 did_names = args.did_names
 scope= args.scope
-rse= args.rse   
+rse= args.rse
+noregister = args.noregister 
 
 # Validation to ensure file_paths and did_names have the same length
 if len(file_paths) != len(did_names):
@@ -36,7 +38,8 @@ for file_path, did_name in zip(file_paths, did_names):
         'did_scope': scope,
         'did_name': did_name,
         'dataset_scope': scope,
-        'dataset_name': parent_directory
+        'dataset_name': parent_directory,
+        'no_register': noregister
     }
     
     # Append the new item to the upload_items list

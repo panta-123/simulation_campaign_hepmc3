@@ -212,7 +212,7 @@ if [ "${COPYLOG:-false}" == "true" ] ; then
     python $SCRIPT_DIR/register_to_rucio.py \
     -f "${LOG_TEMP}/${TASKNAME}.log.tar.gz" \
     -d "/${LOG_DIR}/${TASKNAME}.${TIME_TAG}.log.tar.gz" \
-    -s epic -r EIC-CLOUD-LOG
+    -s epic -r EIC-XRD-LOG -noregister
   else
     # Token for write authentication
     export BEARER_TOKEN=$(cat ${_CONDOR_CREDS:-.}/eic.use)

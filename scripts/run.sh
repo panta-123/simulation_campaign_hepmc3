@@ -73,7 +73,7 @@ XRDWBASE=${XRDWBASE:-"/eic/eic2/EPIC"}
 
 # XRD Read locations (allow for empty URL override)
 XRDRURL=${XRDRURL-"root://dtn-eic.jlab.org/"}
-XRDRBASE=${XRDRBASE:-"/work/eic2/EPIC"}
+XRDRBASE=${XRDRBASE:-"/volatile/eic/EPIC"}
 
 # Local temp dir
 echo "SLURM_TMPDIR=${SLURM_TMPDIR:-}"

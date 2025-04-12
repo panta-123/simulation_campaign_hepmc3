@@ -67,6 +67,8 @@ try:
     upload_client.upload(upload_items)
 
 except (NoFilesUploaded, NotAllFilesUploaded) as e:
+    # Please be very careful on changing this part of code.
+    logger.warning(f"Handlining the case for duplicate DIDs issues")
     logger.warning(f"Upload failed or incomplete: {e}")
 
     for item in upload_items:
@@ -74,14 +76,22 @@ except (NoFilesUploaded, NotAllFilesUploaded) as e:
         name = item['did_name']
 
         try:
-            replicas = list(rc_client.list_replicas([{'scope': scope, 'name': name}], rse_expression=rse, all_states=True))
-            if replicas:
-                states = replicas[0].get('states', {})
-                state = states.get(rse)
-
-                if state == 'C':  # C = COPYING
-                    logger.info(f"Replica {name} in state COPYING. Setting tombstone to force re-copy in next iteration.")
+            replicas = rc_client.list_replicas([{'scope': scope, 'name': name}], rse_expression=rse, all_states=True)
+            if not replicas:
+                raise
+            for replica in replicas:
+                state = replica.get("states", {}).get(rse)
+                if not state:
+                    raise
+                if state == "AVAILABLE":
+                    logger.info(f"Replica is available on {rse}. This means you are reuploading already successful upload.")
+                elif state == "COPYING":
+                    logger.info(f"Replica is still COPYING. Setting tombstone so that it can be reused in next iteration.")
                     rc_client.set_tombstone(scope=scope, name=name, rse=rse)
+                    raise
+                else:
+                    logger.warning(f"Replica state is {state}")
+
         except Exception as replica_error:
             logger.error(f"Error while checking or modifying replica for {name}: {replica_error}")
 

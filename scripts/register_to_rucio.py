@@ -78,10 +78,12 @@ except (NoFilesUploaded, NotAllFilesUploaded) as e:
         try:
             replicas = rc_client.list_replicas([{'scope': scope, 'name': name}], rse_expression=rse, all_states=True)
             if not replicas:
+                logger.info(f"No replicas found in {rse}. Next Iteration is okay.")
                 raise
             for replica in replicas:
                 state = replica.get("states", {}).get(rse)
                 if not state:
+                    logger.info(f"No replicas found in {rse}. Next Iteration is okay.")
                     raise
                 if state == "AVAILABLE":
                     logger.info(f"Replica is available on {rse}. This means you are reuploading already successful upload.")

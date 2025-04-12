@@ -26,6 +26,10 @@ noregister = args.noregister
 if len(file_paths) != len(did_names):
     raise ValueError("The number of file paths must match the number of did names.")
 
+# ----------------------------
+# Prepare upload items
+# ----------------------------
+
 upload_items = []  # List to hold the upload items
 
 # Loop through the file paths and did names (assuming did_names length matches file_paths length)
@@ -45,21 +49,40 @@ for file_path, did_name in zip(file_paths, did_names):
     # Append the new item to the upload_items list
     upload_items.append(upload_item)
 
+
+# ----------------------------
+# Logger Setup
+# ----------------------------
 logger = logging.getLogger('upload_client')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
-upload_client=UploadClient(logger=logger)
+# ----------------------------
+# Upload Logic
+# ----------------------------
+upload_client = UploadClient(logger=logger)
+rc_client = RucioClient()
+
 try:
     upload_client.upload(upload_items)
-except (NoFilesUploaded, NotAllFilesUploaded):
-    # read upload_summary
-    rc_client = Cleint()
-    # check if replicas exits
-    duplicate_did = {'scope': scope, 'name': did_name},
-    replica_info = rc_client.list_replicas([duplicate_did], rse_expression=rse, all_states=True)
-    # check the replica state. If its copying.
-    if replica_info['states'][rse] == 'C':
-        set_tombstone = rc_client.set_tombstone([{'scope': scope, 'name': did_name, 'rse': rse}])
 
+except (NoFilesUploaded, NotAllFilesUploaded) as e:
+    logger.warning(f"Upload failed or incomplete: {e}")
 
+    for item in upload_items:
+        scope = item['did_scope']
+        name = item['did_name']
+
+        try:
+            replicas = list(rc_client.list_replicas([{'scope': scope, 'name': name}], rse_expression=rse, all_states=True))
+            if replicas:
+                states = replicas[0].get('states', {})
+                state = states.get(rse)
+
+                if state == 'C':  # C = COPYING
+                    logger.info(f"Replica {name} in state COPYING. Setting tombstone to force re-copy in next iteration.")
+                    rc_client.set_tombstone(scope=scope, name=name, rse=rse)
+        except Exception as replica_error:
+            logger.error(f"Error while checking or modifying replica for {name}: {replica_error}")
+
+    raise  # re-raise the original upload error

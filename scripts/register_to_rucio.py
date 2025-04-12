@@ -51,7 +51,7 @@ logger.setLevel(logging.INFO)
 
 upload_client=UploadClient(logger=logger)
 try:
-    upload_client.upload(upload_items, summary_file_path='upload_summary.json')
+    upload_client.upload(upload_items)
 except (NoFilesUploaded, NotAllFilesUploaded):
     # read upload_summary
     rc_client = Cleint()
@@ -59,7 +59,7 @@ except (NoFilesUploaded, NotAllFilesUploaded):
     duplicate_did = {'scope': scope, 'name': did_name},
     replica_info = rc_client.list_replicas([duplicate_did], rse_expression=rse, all_states=True)
     # check the replica state. If its copying.
-    if replica_info[] == 'C':
+    if replica_info['states'][rse] == 'C':
         set_tombstone = rc_client.set_tombstone([{'scope': scope, 'name': did_name, 'rse': rse}])
 
 

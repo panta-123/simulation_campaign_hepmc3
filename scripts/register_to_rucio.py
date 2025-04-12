@@ -4,7 +4,7 @@ import argparse
 import os
 from rucio.client.uploadclient import UploadClient
 from rucio.client import Client
-from rucio.common.exception import DataIdentifierAlreadyExists, InputValidationError, NoFilesUploaded, NotAllFilesUploaded.
+from rucio.common.exception import NoFilesUploaded, NotAllFilesUploaded.
 import logging
 
 parser = argparse.ArgumentParser(prog='Register to RUCIO', description='Registers files to RUCIO')
@@ -67,8 +67,8 @@ try:
     upload_client.upload(upload_items)
 
 except (NoFilesUploaded, NotAllFilesUploaded) as e:
-    # Please be very careful on changing this part of code.
-    logger.warning(f"Handlining the case for duplicate DIDs issues")
+    # Please be very careful on changing this part of the code.
+    logger.warning(f"Handling the case for duplicate DIDs issues")
     logger.warning(f"Upload failed or incomplete: {e}")
 
     for item in upload_items:
@@ -95,4 +95,4 @@ except (NoFilesUploaded, NotAllFilesUploaded) as e:
         except Exception as replica_error:
             logger.error(f"Error while checking or modifying replica for {name}: {replica_error}")
 
-    raise  # re-raise the original upload error
+    raise

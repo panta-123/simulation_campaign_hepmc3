@@ -137,38 +137,42 @@ RECO_DIR=RECO/${TAG}
 RECO_TEMP=${TMPDIR}/${RECO_DIR}
 mkdir -p ${RECO_TEMP} 
 
-# Mix background events
-{
-  date
-  eic-info
-  prmon \
-    --filename ${LOG_TEMP}/${TASKNAME}.hepmcmerger.prmon.txt \
-    --json-summary ${LOG_TEMP}/${TASKNAME}.hepmcmerger.prmon.json \
-    -- \
-  SignalBackgroundMerger \
-    --rngSeed ${SEED:-1} \
-    --nSlices ${EVENTS_PER_TASK} \
-    --signalSkip ${SKIP_N_EVENTS} \
-    --signalFile ${INPUT_FILE} \
-    --bg1Freq ${BG1_FREQ:-""} \
-    --bg1File ${BG1_FILE:-""} \
-    --bg1Skip ${BG1_SKIP:-0} \
-    --bg2Freq ${BG2_FREQ:-""} \
-    --bg2File ${BG2_FILE:-""} \
-    --bg2Skip ${BG2_SKIP:-0} \
-    --bg3Freq ${BG3_FREQ:-""} \
-    --bg3File ${BG3_FILE:-""} \
-    --bg3Skip ${BG3_SKIP:-0} \
-    --bg4Freq ${BG4_FREQ:-""} \
-    --bg4File ${BG4_FILE:-""} \
-    --bg4Skip ${BG4_SKIP:-0} \
-    --outputFile ${FULL_TEMP}/${TASKNAME}.hepmc3.tree.root
+# Mix background events if the input file is a hepmc file
+if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
+  {
+    date
+    eic-info
+    prmon \
+      --filename ${LOG_TEMP}/${TASKNAME}.hepmcmerger.prmon.txt \
+      --json-summary ${LOG_TEMP}/${TASKNAME}.hepmcmerger.prmon.json \
+      -- \
+    SignalBackgroundMerger \
+      --rngSeed ${SEED:-1} \
+      --nSlices ${EVENTS_PER_TASK} \
+      --signalSkip ${SKIP_N_EVENTS} \
+      --signalFile ${INPUT_FILE} \
+      --bg1Freq ${BG1_FREQ:-""} \
+      --bg1File ${BG1_FILE:-""} \
+      --bg1Skip ${BG1_SKIP:-0} \
+      --bg2Freq ${BG2_FREQ:-""} \
+      --bg2File ${BG2_FILE:-""} \
+      --bg2Skip ${BG2_SKIP:-0} \
+      --bg3Freq ${BG3_FREQ:-""} \
+      --bg3File ${BG3_FILE:-""} \
+      --bg3Skip ${BG3_SKIP:-0} \
+      --bg4Freq ${BG4_FREQ:-""} \
+      --bg4File ${BG4_FILE:-""} \
+      --bg4Skip ${BG4_SKIP:-0} \
+      --outputFile ${FULL_TEMP}/${TASKNAME}.hepmc3.tree.root
 
-  # Use background merged file as input for next stage
-  INPUT_FILE=${FULL_TEMP}/${TASKNAME}.hepmc3.tree.root
-  # Don't skip events on the background merged file
-  SKIP_N_EVENTS=0
-} 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.hepmcmerger.log | tail -n1000
+    # Use background merged file as input for next stage
+    INPUT_FILE=${FULL_TEMP}/${TASKNAME}.hepmc3.tree.root
+    # Don't skip events on the background merged file
+    SKIP_N_EVENTS=0
+  } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.hepmcmerger.log | tail -n1000
+else
+  echo "No background mixing is performed for singles"
+fi
 
 # Run simulation
 {
@@ -236,12 +240,32 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 if [ "${COPYLOG:-false}" == "true" ] ; then
   if [ "${USERUCIO:-false}" == "true" ] ; then
     TIME_TAG=$(date --iso-8601=second)
-    tar -czvf ${LOG_TEMP}/${TASKNAME}.log.tar.gz \
-    ${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt \
-    ${LOG_TEMP}/${TASKNAME}.npsim.log \
-    ${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt \
-    ${LOG_TEMP}/${TASKNAME}.eicrecon.log \
-    ${LOG_TEMP}/${TASKNAME}.eicrecon.dot
+    TARFILE="${LOG_TEMP}/${TASKNAME}.log.tar.gz"
+
+    # Initialize an empty array to hold existing files
+    FILES_TO_TAR=()
+
+    # List of expected files
+    for FILE in \
+      "${LOG_TEMP}/${TASKNAME}.npsim.prmon.txt" \
+      "${LOG_TEMP}/${TASKNAME}.npsim.log" \
+      "${LOG_TEMP}/${TASKNAME}.eicrecon.prmon.txt" \
+      "${LOG_TEMP}/${TASKNAME}.eicrecon.log" \
+      "${LOG_TEMP}/${TASKNAME}.eicrecon.dot" \
+      "${LOG_TEMP}/${TASKNAME}.hepmcmerger.log"
+    do
+      if [ -f "$FILE" ]; then
+        FILES_TO_TAR+=("$FILE")
+      fi
+    done
+
+    # Create the tar archive only if there are files to include
+    if [ ${#FILES_TO_TAR[@]} -gt 0 ]; then
+      tar -czvf "$TARFILE" "${FILES_TO_TAR[@]}"
+    else
+      echo "No log files found to archive."
+    fi
+    
     python $SCRIPT_DIR/register_to_rucio.py \
     -f "${LOG_TEMP}/${TASKNAME}.log.tar.gz" \
     -d "/${LOG_DIR}/${TASKNAME}.${TIME_TAG}.log.tar.gz" \

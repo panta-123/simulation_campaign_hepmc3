@@ -140,6 +140,12 @@ mkdir -p ${RECO_TEMP}
 # Mix background events if the input file is a hepmc file
 if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
   {
+  
+    BG1_SKIP=$((${SKIP_N_EVENTS}*${BG1_SKIP:-0}))
+    BG2_SKIP=$((${SKIP_N_EVENTS}*${BG2_SKIP:-0}))
+    BG3_SKIP=$((${SKIP_N_EVENTS}*${BG3_SKIP:-0}))
+    BG4_SKIP=$((${SKIP_N_EVENTS}*${BG4_SKIP:-0}))
+    
     date
     eic-info
     prmon \

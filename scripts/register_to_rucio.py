@@ -32,6 +32,7 @@ for file_path, did_name in zip(file_paths, did_names):
     parent_directory = os.path.dirname(did_name)  # Get the parent directory from did_name
 
     # Create a new dictionary for each file and did_name
+    # six months (15778476 sec) policy for each dataset.
     upload_item = {
         'path': file_path,
         'rse': rse,
@@ -39,6 +40,7 @@ for file_path, did_name in zip(file_paths, did_names):
         'did_name': did_name,
         'dataset_scope': scope,
         'dataset_name': parent_directory,
+        'lifetime': 15778476,
         'no_register': noregister
     }
     

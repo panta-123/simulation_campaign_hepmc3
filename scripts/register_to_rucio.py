@@ -49,6 +49,7 @@ logger = logging.getLogger('upload_client')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 upload_client=UploadClient(logger=logger)
+client = Client()
 try:
     upload_client.upload(upload_items)
 except (NoFilesUploaded, NotAllFilesUploaded) as e:
@@ -73,16 +74,12 @@ except (NoFilesUploaded, NotAllFilesUploaded) as e:
                 "Found COPYING replica %s:%s on %s — deleting",
                 scope, did_name, rse
             )
-            files_to_update.append({'scope': scope, 'name': did_name})
+            files_to_update.append({'scope': scope, 'name': did_name, 'state': 'U'})
             files_to_tombstone.append({'rse': rse, 'scope': scope, 'name': did_name})
     
     if files_to_update:
         # Update replica states to UNAVAILABLE(U)
-        client.update_replicas_states(
-            rse=rse,
-            files=files_to_update,
-            states='U'
-        )
+        client.update_replicas_states(rse=rse, files=files_to_update)
         # set tombstone to that did, should trigger deletion
         client.set_tombstone(files_to_tombstone)
     

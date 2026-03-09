@@ -8,83 +8,84 @@ from typing import Dict, Any
 from rucio.client.uploadclient import UploadClient
 from rucio.client import Client
 from rucio.common.exception import InputValidationError, RSEWriteBlocked, NoFilesUploaded, NotAllFilesUploaded
+from jsonschema import validate as json_validate, ValidationError
+
 
 # Define the metadata schema
 METADATA_SCHEMA = {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ePICRucioMetadataTags",
-  "description": "Optimized metadata tags for ePIC Rucio datasets using searchable slugs.",
-  "type": "object",
-  "properties": {
-    "container_tag": {
-      "type": "string",
-      "description": "Container version tag (e.g. v25.06.2)",
-      "pattern": "^v[0-9]+\.[0-9]+\.[0-9].*$"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ePICRucioMetadataTags",
+    "description": "Optimized metadata tags for ePIC Rucio datasets using searchable slugs.",
+    "type": "object",
+    "properties": {
+        "container_tag": {
+            "type": "string",
+            "description": "Container version tag (e.g. v25.06.2)",
+            "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9].*$"
+        },
+        "physics_process": {
+            "type": "array",
+            "description": "One or more PWG processes. Use slugs for easy database querying.",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "exclusive_diff_tag",
+                    "inclusive",
+                    "jets_hf",
+                    "semi_inclusive",
+                    "ew_bsm",
+                    "other"
+                ]
+            },
+            "minItems": 1,
+            "uniqueItems": True
+        },
+        "min_max_q2": {
+            "type": "object",
+            "description": "Q2 range (GeV^2). Optional - not applicable to all datasets.",
+            "properties": {
+                "min": {"type": "number"},
+                "max": {"type": "number"}
+            },
+            "required": ["min", "max"]
+        },
+        "e_energy": {
+            "type": "number",
+            "description": "Electron beam energy (GeV)"
+        },
+        "a_energy": {
+            "type": "number",
+            "description": "Ion/nucleus beam energy (GeV)"
+        },
+        "background": {
+            "type": "string",
+            "description": "Background configuration or setting"
+        },
+        "a_species": {
+            "type": "string",
+            "description": "Ion/nucleus species. Defaults to 'p'",
+            "default": "p"
+        },
+        "generator": {
+            "type": "string",
+            "description": "Generator name (e.g., Pythia8, Herwig)"
+        }
     },
-    "physics_process": {
-      "type": "array",
-      "description": "One or more PWG processes. Use slugs for easy database querying.",
-      "items": {
-        "type": "string",
-        "enum": [
-          "exclusive_diff_tag",
-          "inclusive",
-          "jets_hf",
-          "semi_inclusive",
-          "ew_bsm",
-          "other"
-        ]
-      },
-      "minItems": 1,
-      "uniqueItems": true
-    },
-    "min_max_q2": {
-      "type": "object",
-      "description": "Q2 range (GeV^2). Optional - not applicable to all datasets.",
-      "properties": {
-        "min": { "type": "number" },
-        "max": { "type": "number" }
-      },
-      "required": ["min", "max"]
-    },
-    "e_energy": {
-      "type": "number",
-      "description": "Electron beam energy (GeV)"
-    },
-    "a_energy": {
-      "type": "number",
-      "description": "Ion/nucleus beam energy (GeV)"
-    },
-    "background": {
-      "type": "string",
-      "description": "Background configuration or setting"
-    },
-    "a_species": {
-      "type": "string",
-      "description": "Ion/nucleus species. Defaults to 'p'",
-      "default": "p"
-    },
-    "generator": {
-      "type": "string",
-      "description": "Generator name (e.g., Pythia8, Herwig)"
-    }
-  },
-  "required": [
-    "container_tag",
-    "physics_process",
-    "e_energy",
-    "a_energy",
-    "background",
-    "a_species",
-    "generator"
-  ]
-} 
-
+    "required": [
+        "container_tag",
+        "physics_process",
+        "e_energy",
+        "a_energy",
+        "background",
+        "a_species",
+        "generator"
+    ]
+}
 
 
 def validate_metadata(metadata: Dict[str, Any]) -> bool:
     """
-    Validate metadata against the schema.
+    Validate metadata against the schema using jsonschema.
     
     Parameters
     ----------
@@ -104,25 +105,10 @@ def validate_metadata(metadata: Dict[str, Any]) -> bool:
     if not isinstance(metadata, dict):
         raise ValueError("Metadata must be a JSON object (dictionary)")
     
-    # Check that values match expected types if they're present
-    for key, value in metadata.items():
-        if key in METADATA_SCHEMA["properties"]:
-            expected_types = METADATA_SCHEMA["properties"][key]["type"]
-            if isinstance(expected_types, list):
-                type_map = {"string": str, "integer": int}
-                valid_types = tuple(type_map[t] for t in expected_types if t in type_map)
-                if not isinstance(value, valid_types):
-                    raise ValueError(
-                        f"Metadata field '{key}' has invalid type. "
-                        f"Expected one of {expected_types}, got {type(value).__name__}"
-                    )
-            else:
-                type_map = {"string": str, "integer": int, "object": dict}
-                if expected_types in type_map and not isinstance(value, type_map[expected_types]):
-                    raise ValueError(
-                        f"Metadata field '{key}' has invalid type. "
-                        f"Expected {expected_types}, got {type(value).__name__}"
-                    )
+    try:
+        json_validate(instance=metadata, schema=METADATA_SCHEMA)
+    except ValidationError as e:
+        raise ValueError(f"Metadata validation failed: {e.message}")
     
     return True
 
@@ -159,7 +145,6 @@ def load_metadata_file(filepath: str) -> Dict[str, Any]:
     
     validate_metadata(metadata)
     return metadata
-
 
 
 if __name__ == "__main__":
@@ -210,6 +195,11 @@ if __name__ == "__main__":
     if len(file_paths) != len(did_names):
         raise ValueError("The number of file paths must match the number of did names.")
 
+    # Validate that all files exist
+    for file_path in file_paths:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
     # Load and validate metadata if provided
     dataset_meta = None
     if args.metadata_file:
@@ -221,6 +211,13 @@ if __name__ == "__main__":
     # Loop through the file paths and did names
     for file_path, did_name in zip(file_paths, did_names):
         parent_directory = os.path.dirname(did_name)  # Get the parent directory from did_name
+        
+        # Validate that parent_directory is not empty
+        if not parent_directory:
+            raise ValueError(
+                f"DID name '{did_name}' does not contain a parent directory. "
+                "Expected format: 'parent/filename'"
+            )
         
         # Create a new dictionary for each file and did_name
         upload_item = {
@@ -250,7 +247,7 @@ if __name__ == "__main__":
     
     try:
         upload_client.upload(upload_items)
-        logger.INFO("Upload completed successfully!")
+        logger.info("Upload completed successfully!")
     except (NoFilesUploaded, NotAllFilesUploaded) as e:
         logger.error(f"Upload failed: {e}")
         

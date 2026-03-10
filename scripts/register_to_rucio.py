@@ -18,7 +18,7 @@ METADATA_SCHEMA = {
     "description": "Optimized metadata tags for ePIC Rucio datasets using searchable slugs.",
     "type": "object",
     "properties": {
-        "container_tag": {
+        "software_release": {
             "type": "string",
             "description": "Container version tag (e.g. v25.06.2)",
             "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9].*$"
@@ -29,7 +29,7 @@ METADATA_SCHEMA = {
             "items": {
                 "type": "string",
                 "enum": [
-                    "exclusive_diff_tag",
+                    "excl_diff_taging",
                     "inclusive",
                     "jets_hf",
                     "semi_inclusive",
@@ -40,7 +40,7 @@ METADATA_SCHEMA = {
             "minItems": 1,
             "uniqueItems": True
         },
-        "min_max_q2": {
+        "q2_range": {
             "type": "object",
             "description": "Q2 range (GeV^2). Optional - not applicable to all datasets.",
             "properties": {
@@ -49,21 +49,21 @@ METADATA_SCHEMA = {
             },
             "required": ["min", "max"]
         },
-        "e_energy": {
+        "electron_beam_energy": {
             "type": "number",
             "description": "Electron beam energy (GeV)"
         },
-        "a_energy": {
+        "hadron_beam_energy": {
             "type": "number",
             "description": "Ion/nucleus beam energy (GeV)"
         },
-        "background": {
+        "background_configuration": {
             "type": "string",
             "description": "Background configuration or setting"
         },
-        "a_species": {
+        "hadron_species": {
             "type": "string",
-            "description": "Ion/nucleus species. Defaults to 'p'",
+            "description": "Hadron species. Defaults to 'p'",
             "default": "p"
         },
         "generator": {

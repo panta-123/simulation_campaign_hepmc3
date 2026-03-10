@@ -40,14 +40,13 @@ METADATA_SCHEMA = {
             "minItems": 1,
             "uniqueItems": True
         },
-        "q2_range": {
-            "type": "object",
-            "description": "Q2 range (GeV^2). Optional - not applicable to all datasets.",
-            "properties": {
-                "min": {"type": "number"},
-                "max": {"type": "number"}
-            },
-            "required": ["min", "max"]
+        "q2_min": {
+            "type": "number",
+            "description": "Minimum Q2 value (GeV^2). Optional - not applicable to all datasets."
+        },
+        "q2_max": {
+            "type": "number",
+            "description": "Maximum Q2 value (GeV^2). Optional - not applicable to all datasets."
         },
         "electron_beam_energy": {
             "type": "number",

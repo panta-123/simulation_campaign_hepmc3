@@ -56,9 +56,9 @@ METADATA_SCHEMA = {
             "type": "number",
             "description": "Ion/nucleus beam energy (GeV)"
         },
-        "background_configuration": {
-            "type": "string",
-            "description": "Background configuration or setting"
+        "is_background_mixed": {
+            "type": "boolean",
+            "description": "True if the sample includes background mixing; false if it is a regular/pure signal sample."
         },
         "hadron_species": {
             "type": "string",

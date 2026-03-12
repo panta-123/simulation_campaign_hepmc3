@@ -72,7 +72,7 @@ METADATA_SCHEMA = {
         "number_of_events": {
             "type": "integer",
             "description": "Total number of events in the dataset",
-            "minimum": 0
+            "minimum": 1
         }
     },
     "required": [

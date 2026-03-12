@@ -52,7 +52,7 @@ METADATA_SCHEMA = {
             "type": "number",
             "description": "Electron beam energy (GeV)"
         },
-        "hadron_beam_energy": {
+        "ion_beam_energy": {
             "type": "number",
             "description": "Ion/nucleus beam energy (GeV)"
         },
@@ -60,9 +60,9 @@ METADATA_SCHEMA = {
             "type": "boolean",
             "description": "True if the sample includes background mixing; false if it is a regular/pure signal sample."
         },
-        "hadron_species": {
+        "ion_species": {
             "type": "string",
-            "description": "Hadron species. Defaults to 'p'",
+            "description": "Ion species. Defaults to 'p'",
             "default": "p"
         },
         "generator": {
@@ -74,9 +74,9 @@ METADATA_SCHEMA = {
         "software_release",
         "physics_process",
         "electron_beam_energy",
-        "hadron_beam_energy",
+        "ion_beam_energy",
         "is_background_mixed",
-        "hadron_species",
+        "ion_species",
         "generator"
     ]
 }

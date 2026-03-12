@@ -234,6 +234,19 @@ fi
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root  
 } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
 
+# Validate FULL event count against expected NEVENTS
+echo "=== Validating FULL event count ==="
+NEVENTS_FULL=$(python3 -c "import ROOT; ROOT.gErrorIgnoreLevel=ROOT.kError; f=ROOT.TFile.Open('${FULL_TEMP}/${TASKNAME}.edm4hep.root'); print(int(f.Get('events').GetEntries()))" 2>/dev/null)
+if [ -z "${NEVENTS_FULL}" ]; then
+  echo "ERROR: Could not read event count from FULL ROOT file."
+  exit 66
+fi
+echo "FULL event count: ${NEVENTS_FULL} (expected: ${NEVENTS})"
+if [ "${NEVENTS_FULL}" -ne "${NEVENTS}" ]; then
+  echo "ERROR: FULL event count mismatch: got ${NEVENTS_FULL}, expected ${NEVENTS}."
+  exit 66
+fi
+
 # Run eicrecon reconstruction
 {
   date
@@ -253,8 +266,28 @@ fi
   ls -al ${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root
 } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
 
+# Validate RECO event count against expected NEVENTS
+echo "=== Validating RECO event count ==="
+NEVENTS_RECO=$(python3 -c "import ROOT; ROOT.gErrorIgnoreLevel=ROOT.kError; f=ROOT.TFile.Open('${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root'); print(int(f.Get('events').GetEntries()))" 2>/dev/null)
+if [ -z "${NEVENTS_RECO}" ]; then
+  echo "ERROR: Could not read event count from RECO ROOT file."
+  exit 66
+fi
+echo "RECO event count: ${NEVENTS_RECO} (expected: ${NEVENTS})"
+if [ "${NEVENTS_RECO}" -ne "${NEVENTS}" ]; then
+  echo "ERROR: RECO event count mismatch: got ${NEVENTS_RECO}, expected ${NEVENTS}."
+  exit 66
+fi
+
 # List log files
 ls -al ${LOG_TEMP}/${TASKNAME}.*
+
+# Build metadata JSON string for Rucio registration
+PBEAM_ENERGY="${PBEAM%%_*}"
+PBEAM_SPECIES="${PBEAM##*_}"
+IS_BG_MIXED="false"
+if [ -n "${BG_FILES:-}" ]; then IS_BG_MIXED="true"; fi
+METADATA_JSON="{\"software_release\": \"v${JUG_XL_TAG}\", \"physics_process\": [\"${PHYSICS_PROCESS}\"], \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\", \"number_of_events\": ${NEVENTS}}"
 
 # Data egress to directory
 
@@ -328,7 +361,7 @@ if [ "${COPYFULL:-false}" == "true" ] ; then
   echo "FULL ROOT file validation passed."
 
   if [ "${USERUCIO:-false}" == "true" ] ; then
-    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic -r ${OUT_RSE:-EIC-XRD}
+    python $SCRIPT_DIR/register_to_rucio.py -f "${FULL_TEMP}/${TASKNAME}.edm4hep.root" -d "/${FULL_DIR}/${TASKNAME}.edm4hep.root" -s epic -r ${OUT_RSE:-EIC-XRD} --metadata-json "${METADATA_JSON}" || { echo "ERROR: Rucio registration failed for FULL file."; exit 78; }
   else
     # Token for write authentication
     echo "=== DEBUG: Attempting to copy FULL files to xrootd ==="
@@ -366,7 +399,7 @@ if [ "${COPYRECO:-false}" == "true" ] ; then
   echo "RECO ROOT file validation passed."
 
   if [ "${USERUCIO:-false}" == "true" ] ; then
-    python $SCRIPT_DIR/register_to_rucio.py -f "${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root" -d "/${RECO_DIR}/${TASKNAME}.eicrecon.edm4eic.root" -s epic -r ${OUT_RSE:-EIC-XRD}
+    python $SCRIPT_DIR/register_to_rucio.py -f "${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root" -d "/${RECO_DIR}/${TASKNAME}.eicrecon.edm4eic.root" -s epic -r ${OUT_RSE:-EIC-XRD} --metadata-json "${METADATA_JSON}" || { echo "ERROR: Rucio registration failed for RECO file."; exit 78; }
   else
     # Token for write authentication
     echo "=== DEBUG: Attempting to copy RECO files to xrootd ==="

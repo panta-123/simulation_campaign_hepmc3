@@ -187,6 +187,11 @@ if __name__ == "__main__":
         action="store", default=None,
         help="Path to JSON file containing dataset metadata"
     )
+    parser.add_argument(
+        '--metadata-json', dest="metadata_json",
+        action="store", default=None,
+        help="JSON string containing dataset metadata"
+    )
 
     args = parser.parse_args()
 
@@ -206,9 +211,18 @@ if __name__ == "__main__":
             raise FileNotFoundError(f"File not found: {file_path}")
 
     # Load and validate metadata if provided
+    if args.metadata_file and args.metadata_json:
+        raise ValueError("Cannot specify both --upload-metadata and --metadata-json")
     dataset_meta = None
     if args.metadata_file:
         dataset_meta = load_metadata_file(args.metadata_file)
+        print(f"Loaded metadata: {json.dumps(dataset_meta, indent=2)}")
+    elif args.metadata_json:
+        try:
+            dataset_meta = json.loads(args.metadata_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in --metadata-json: {e}")
+        validate_metadata(dataset_meta)
         print(f"Loaded metadata: {json.dumps(dataset_meta, indent=2)}")
 
     upload_items = []  # List to hold the upload items

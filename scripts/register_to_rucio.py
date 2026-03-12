@@ -75,7 +75,7 @@ METADATA_SCHEMA = {
         "physics_process",
         "electron_beam_energy",
         "hadron_beam_energy",
-        "background_configuration",
+        "is_background_mixed",
         "hadron_species",
         "generator"
     ]

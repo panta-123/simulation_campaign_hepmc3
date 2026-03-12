@@ -68,6 +68,11 @@ METADATA_SCHEMA = {
         "generator": {
             "type": "string",
             "description": "Generator name (e.g., Pythia8, Herwig)"
+        },
+        "number_of_events": {
+            "type": "integer",
+            "description": "Total number of events in the dataset",
+            "minimum": 0
         }
     },
     "required": [
@@ -77,7 +82,8 @@ METADATA_SCHEMA = {
         "ion_beam_energy",
         "is_background_mixed",
         "ion_species",
-        "generator"
+        "generator",
+        "number_of_events"
     ]
 }
 

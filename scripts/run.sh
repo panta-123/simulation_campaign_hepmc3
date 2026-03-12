@@ -241,9 +241,9 @@ if [ -z "${NEVENTS_FULL}" ]; then
   echo "ERROR: Could not read event count from FULL ROOT file."
   exit 66
 fi
-echo "FULL event count: ${NEVENTS_FULL} (expected: ${NEVENTS})"
-if [ "${NEVENTS_FULL}" -ne "${NEVENTS}" ]; then
-  echo "ERROR: FULL event count mismatch: got ${NEVENTS_FULL}, expected ${NEVENTS}."
+echo "FULL event count: ${NEVENTS_FULL} (expected: ${EVENTS_PER_TASK})"
+if [ "${NEVENTS_FULL}" -ne "${EVENTS_PER_TASK}" ]; then
+  echo "ERROR: FULL event count mismatch: got ${NEVENTS_FULL}, expected ${EVENTS_PER_TASK}."
   exit 66
 fi
 
@@ -273,9 +273,9 @@ if [ -z "${NEVENTS_RECO}" ]; then
   echo "ERROR: Could not read event count from RECO ROOT file."
   exit 66
 fi
-echo "RECO event count: ${NEVENTS_RECO} (expected: ${NEVENTS})"
-if [ "${NEVENTS_RECO}" -ne "${NEVENTS}" ]; then
-  echo "ERROR: RECO event count mismatch: got ${NEVENTS_RECO}, expected ${NEVENTS}."
+echo "RECO event count: ${NEVENTS_RECO} (expected: ${EVENTS_PER_TASK})"
+if [ "${NEVENTS_RECO}" -ne "${EVENTS_PER_TASK}" ]; then
+  echo "ERROR: RECO event count mismatch: got ${NEVENTS_RECO}, expected ${EVENTS_PER_TASK}."
   exit 66
 fi
 
@@ -287,7 +287,8 @@ PBEAM_ENERGY="${PBEAM%%_*}"
 PBEAM_SPECIES="${PBEAM##*_}"
 IS_BG_MIXED="false"
 if [ -n "${BG_FILES:-}" ]; then IS_BG_MIXED="true"; fi
-METADATA_JSON="{\"software_release\": \"v${JUG_XL_TAG}\", \"physics_process\": [\"${PHYSICS_PROCESS}\"], \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\", \"number_of_events\": ${NEVENTS}}"
+PHYSICS_PROCESS_JSON=$(python3 -c "import json,sys; print(json.dumps([s.strip() for s in sys.argv[1].split(',')]))" "${PHYSICS_PROCESS}")
+METADATA_JSON="{\"software_release\": \"${JUG_XL_TAG}\", \"physics_process\": ${PHYSICS_PROCESS_JSON}, \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\", \"number_of_events\": ${EVENTS_PER_TASK}}"
 
 # Data egress to directory
 
@@ -323,7 +324,7 @@ if [ "${COPYLOG:-false}" == "true" ] ; then
     python $SCRIPT_DIR/register_to_rucio.py \
     -f "${LOG_TEMP}/${TASKNAME}.log.tar.gz" \
     -d "/${LOG_DIR}/${TASKNAME}.${TIME_TAG}.log.tar.gz" \
-    -s epic -r ${LOG_RSE:-EIC-XRD-LOG} -noregister
+    -s epic -r ${LOG_RSE:-EIC-XRD-LOG} --noregister
   else
     # Token for write authentication
     echo "=== DEBUG: Attempting to copy LOG files to xrootd ==="

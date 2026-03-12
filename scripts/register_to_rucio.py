@@ -20,8 +20,8 @@ METADATA_SCHEMA = {
     "properties": {
         "software_release": {
             "type": "string",
-            "description": "Container version tag (e.g. v25.06.2)",
-            "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9].*$"
+            "description": "Container version tag (e.g. 25.06.2, nightly)",
+            "pattern": "^([0-9]+\\.[0-9]+\\.[0-9].*|nightly)$"
         },
         "physics_process": {
             "type": "array",

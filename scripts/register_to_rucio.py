@@ -71,12 +71,12 @@ METADATA_SCHEMA = {
         }
     },
     "required": [
-        "container_tag",
+        "software_release",
         "physics_process",
-        "e_energy",
-        "a_energy",
-        "background",
-        "a_species",
+        "electron_beam_energy",
+        "hadron_beam_energy",
+        "background_configuration",
+        "hadron_species",
         "generator"
     ]
 }

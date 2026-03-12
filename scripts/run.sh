@@ -285,6 +285,11 @@ ls -al ${LOG_TEMP}/${TASKNAME}.*
 # Build metadata JSON string for Rucio registration
 PBEAM_ENERGY="${PBEAM%%_*}"
 PBEAM_SPECIES="${PBEAM##*_}"
+# If PBEAM contains no underscore, the species extraction above returns the
+# full string (same as the energy).  In that case default to proton ("p").
+if [ "${PBEAM_SPECIES}" = "${PBEAM_ENERGY}" ]; then
+    PBEAM_SPECIES="p"
+fi
 IS_BG_MIXED="false"
 if [ -n "${BG_FILES:-}" ]; then IS_BG_MIXED="true"; fi
 PHYSICS_PROCESS_JSON=$(python3 -c "import json,sys; print(json.dumps([s.strip() for s in sys.argv[1].split(',')]))" "${PHYSICS_PROCESS}")

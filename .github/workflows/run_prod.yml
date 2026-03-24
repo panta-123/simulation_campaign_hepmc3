@@ -46,6 +46,7 @@ jobs:
           COPYLOG=true \
           USERUCIO=true \
           OUT_RSE=EIC-XRD \
+          REQUESTER_PWG=inclusive \
           scripts/run.sh EVGEN/DIS/NC/18x275/minQ2=1/pythia8NCDIS_18x275_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1 hepmc3.tree.root 10
           
 
@@ -61,6 +62,7 @@ jobs:
           COPYLOG=true \
           USERUCIO=true \
           BG_FILES=bg_files.json \
+          REQUESTER_PWG=inclusive \
           scripts/run.sh EVGEN/DIS/NC/18x275/minQ2=1/pythia8NCDIS_18x275_minQ2=1_beamEffects_xAngle=-0.025_hiDiv_1 hepmc3.tree.root 10
 
           # Test running singles file

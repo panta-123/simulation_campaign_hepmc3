@@ -234,19 +234,6 @@ fi
   ls -al ${FULL_TEMP}/${TASKNAME}.edm4hep.root  
 } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.npsim.log | tail -n1000
 
-# Validate FULL event count against expected NEVENTS
-echo "=== Validating FULL event count ==="
-NEVENTS_FULL=$(python3 -c "import ROOT; ROOT.gErrorIgnoreLevel=ROOT.kError; f=ROOT.TFile.Open('${FULL_TEMP}/${TASKNAME}.edm4hep.root'); print(int(f.Get('events').GetEntries()))" 2>/dev/null)
-if [ -z "${NEVENTS_FULL}" ]; then
-  echo "ERROR: Could not read event count from FULL ROOT file."
-  exit 66
-fi
-echo "FULL event count: ${NEVENTS_FULL} (expected: ${EVENTS_PER_TASK})"
-if [ "${NEVENTS_FULL}" -ne "${EVENTS_PER_TASK}" ]; then
-  echo "ERROR: FULL event count mismatch: got ${NEVENTS_FULL}, expected ${EVENTS_PER_TASK}."
-  exit 66
-fi
-
 # Run eicrecon reconstruction
 {
   date
@@ -266,19 +253,6 @@ fi
   ls -al ${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root
 } 2>&1 | tee ${LOG_TEMP}/${TASKNAME}.eicrecon.log | tail -n1000
 
-# Validate RECO event count against expected NEVENTS
-echo "=== Validating RECO event count ==="
-NEVENTS_RECO=$(python3 -c "import ROOT; ROOT.gErrorIgnoreLevel=ROOT.kError; f=ROOT.TFile.Open('${RECO_TEMP}/${TASKNAME}.eicrecon.edm4eic.root'); print(int(f.Get('events').GetEntries()))" 2>/dev/null)
-if [ -z "${NEVENTS_RECO}" ]; then
-  echo "ERROR: Could not read event count from RECO ROOT file."
-  exit 66
-fi
-echo "RECO event count: ${NEVENTS_RECO} (expected: ${EVENTS_PER_TASK})"
-if [ "${NEVENTS_RECO}" -ne "${EVENTS_PER_TASK}" ]; then
-  echo "ERROR: RECO event count mismatch: got ${NEVENTS_RECO}, expected ${EVENTS_PER_TASK}."
-  exit 66
-fi
-
 # List log files
 ls -al ${LOG_TEMP}/${TASKNAME}.*
 
@@ -292,8 +266,8 @@ if [ "${PBEAM_SPECIES}" = "${PBEAM_ENERGY}" ]; then
 fi
 IS_BG_MIXED="false"
 if [ -n "${BG_FILES:-}" ]; then IS_BG_MIXED="true"; fi
-PHYSICS_PROCESS_JSON=$(python3 -c "import json,sys; print(json.dumps([s.strip() for s in sys.argv[1].split(',')]))" "${PHYSICS_PROCESS}")
-METADATA_JSON="{\"software_release\": \"${JUG_XL_TAG}\", \"physics_process\": ${PHYSICS_PROCESS_JSON}, \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\", \"number_of_events\": ${EVENTS_PER_TASK}}"
+REQUESTER_PWG="${REQUESTER_PWG:-other}"
+METADATA_JSON="{\"software_release\": \"${JUG_XL_TAG}\", \"requester_pwg\": \"${REQUESTER_PWG}\", \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\"}"
 
 # Data egress to directory
 

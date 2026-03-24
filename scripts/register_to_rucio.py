@@ -23,22 +23,17 @@ METADATA_SCHEMA = {
             "description": "Container version tag (e.g. 25.06.2, nightly)",
             "pattern": "^([0-9]+\\.[0-9]+\\.[0-9].*|nightly)$"
         },
-        "physics_process": {
-            "type": "array",
-            "description": "One or more PWG processes. Use slugs for easy database querying.",
-            "items": {
-                "type": "string",
-                "enum": [
-                    "excl_diff_taging",
-                    "inclusive",
-                    "jets_hf",
-                    "semi_inclusive",
-                    "ew_bsm",
-                    "other"
-                ]
-            },
-            "minItems": 1,
-            "uniqueItems": True
+        "requester_pwg": {
+            "type": "string",
+            "description": "PWG requesting the dataset.",
+            "enum": [
+                "edt",
+                "inclusive",
+                "jets_hf",
+                "semi_inclusive",
+                "ew_bsm",
+                "other"
+            ]
         },
         "q2_min": {
             "type": "number",
@@ -69,21 +64,15 @@ METADATA_SCHEMA = {
             "type": "string",
             "description": "Generator name (e.g., Pythia8, Herwig)"
         },
-        "number_of_events": {
-            "type": "integer",
-            "description": "Total number of events in the dataset",
-            "minimum": 1
-        }
     },
     "required": [
         "software_release",
-        "physics_process",
+        "requester_pwg",
         "electron_beam_energy",
         "ion_beam_energy",
         "is_background_mixed",
         "ion_species",
-        "generator",
-        "number_of_events"
+        "generator"
     ]
 }
 

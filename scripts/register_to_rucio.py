@@ -57,8 +57,15 @@ METADATA_SCHEMA = {
         },
         "ion_species": {
             "type": "string",
-            "description": "Ion species. Defaults to 'p'",
-            "default": "p"
+            "description": "Ion species.",
+            "enum": [
+                "p",
+                "Au197",
+                "Cu63",
+                "He3",
+                "H2",
+                "Ru96"
+            ]
         },
         "generator": {
             "type": "string",

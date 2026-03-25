@@ -62,7 +62,24 @@ METADATA_SCHEMA = {
         },
         "generator": {
             "type": "string",
-            "description": "Generator name (e.g., Pythia8, Herwig)"
+            "description": "Generator name",
+            "enum": [
+                "pythia6",
+                "pythia8",
+                "beagle",
+                "djangoh",
+                "rapgap",
+                "dempgen",
+                "sartre",
+                "lager",
+                "estarlight",
+                "epic",
+                "getalm",
+                "eicmesonsfgen",
+                "eic_sr_geant4",
+                "eic_esr_xsuite",
+                "other"
+            ]
         },
     },
     "required": [

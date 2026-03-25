@@ -267,6 +267,7 @@ fi
 IS_BG_MIXED="false"
 if [ -n "${BG_FILES:-}" ]; then IS_BG_MIXED="true"; fi
 REQUESTER_PWG="${REQUESTER_PWG:-other}"
+GENERATOR="${GENERATOR:-other}"
 METADATA_JSON="{\"software_release\": \"${JUG_XL_TAG}\", \"requester_pwg\": \"${REQUESTER_PWG}\", \"electron_beam_energy\": ${EBEAM}, \"ion_beam_energy\": ${PBEAM_ENERGY}, \"ion_species\": \"${PBEAM_SPECIES}\", \"is_background_mixed\": ${IS_BG_MIXED}, \"generator\": \"${GENERATOR}\"}"
 
 # Data egress to directory

@@ -85,6 +85,7 @@ METADATA_SCHEMA = {
                 "eicmesonsfgen",
                 "eic_sr_geant4",
                 "eic_esr_xsuite",
+                "sherpa",
                 "other"
             ]
         },

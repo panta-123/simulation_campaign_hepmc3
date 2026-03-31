@@ -67,6 +67,37 @@ METADATA_SCHEMA = {
                 "Ru96"
             ]
         },
+        "data_level": {
+            "type": "string",
+            "description": "Data processing level.",
+            "enum": [
+                "event_generation",
+                "simulation",
+                "reconstruction",
+                "analysis"
+            ]
+        },
+        "single_particle": {
+            "type": "string",
+            "description": "Single particle type. Optional - only applicable to single particle datasets.",
+            "enum": [
+                "e-",
+                "e+",
+                "proton",
+                "neutron",
+                "pi+",
+                "pi-",
+                "pi0",
+                "kaon-",
+                "kaon+",
+                "gamma"
+            ]
+        },
+        "geometry_config": {
+            "type": "string",
+            "description": "Geometry configuration tag (e.g. craterlake_18x275, craterlake_5x41_He3)",
+            "pattern": "^[a-z][a-z0-9]*_[0-9]+x[0-9]+(_.+)?$"
+        },
         "generator": {
             "type": "string",
             "description": "Generator name",
@@ -93,10 +124,9 @@ METADATA_SCHEMA = {
     "required": [
         "software_release",
         "requester_pwg",
-        "electron_beam_energy",
-        "ion_beam_energy",
         "is_background_mixed",
-        "ion_species",
+        "data_level",
+        "geometry_config",
         "generator"
     ]
 }

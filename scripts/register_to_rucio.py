@@ -64,7 +64,9 @@ METADATA_SCHEMA = {
                 "Cu63",
                 "He3",
                 "H2",
-                "Ru96"
+                "Ru96",
+                "Pb208",
+                "Pb207"                
             ]
         },
         "data_level": {

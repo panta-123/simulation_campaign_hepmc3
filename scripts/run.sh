@@ -325,7 +325,7 @@ if [ "${COPYLOG:-false}" == "true" ] ; then
     python $SCRIPT_DIR/register_to_rucio.py \
     -f "${LOG_TEMP}/${TASKNAME}.log.tar.gz" \
     -d "/${LOG_DIR}/${TASKNAME}.${TIME_TAG}.log.tar.gz" \
-    -s epic -r ${LOG_RSE:-EIC-XRD-LOG} --noregister
+    -s epic -r ${LOG_RSE:-isLogRSE} --noregister
   else
     echo "=== DEBUG: Attempting to copy LOG files to xrootd ==="
     setup_xrd_auth

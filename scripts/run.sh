@@ -156,9 +156,12 @@ RECO_DIR=RECO/${TAG}
 RECO_TEMP=${TMPDIR}/${RECO_DIR}
 mkdir -p ${RECO_TEMP} 
 
+# Integration window (ns) used with bg freq (kHz) to compute per-event skip
+INTEGRATION_WINDOW=${INTEGRATION_WINDOW:-2000}
+
 # Mix background events if the input file is a hepmc file
 if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
-  BG_ARGS=()  
+  BG_ARGS=()
 
   SIGNAL_STATUS_VALUE=${SIGNAL_STATUS:-0}
   STABLE_STATUSES="$((${SIGNAL_STATUS_VALUE}+1))"
@@ -168,10 +171,19 @@ if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
     while read -r bg_file; do
       file=$(echo "$bg_file" | jq -r '.file')
       freq=$(echo "$bg_file" | jq -r '.freq')
-      skip=$(echo "$bg_file" | jq -r '.skip')
-      
-      # This ensures that the number of background events skipped before sampling from the source is atleast 1.
-      skip=$(awk "BEGIN {print int((${SKIP_N_EVENTS}*${skip})+1)}")  
+
+      # bg events per signal event = freq[kHz]*1e3 * INTEGRATION_WINDOW[ns]*1e-9 = freq*window*1e-6
+      skip=$(awk "BEGIN {print (${freq})*(${INTEGRATION_WINDOW})*1e-6}")
+
+      # Mix BASENAME hash into seed so different signal files decorrelate, not just task index.
+      # Shift hash into high bits so it can't cancel with task-index low bits (2^20 task headroom).
+      # sha256 truncated to 32 bits — better distribution than cksum/CRC for similar filenames.
+      BASENAME_HASH=$(( 16#$(printf '%s' "${BASENAME}" | sha256sum | cut -c1-8) ))
+      MIXED_SEED=$(( (BASENAME_HASH << 20) + SEED ))
+
+      # Rate-scaled advance + seed-driven random offset. Rate term preserves bg-per-signal proportionality;
+      # random term decorrelates parallel tasks. Merger wraps bg file, so large offsets are safe.
+      skip=$(awk "BEGIN {srand(${MIXED_SEED}); print int((${SKIP_N_EVENTS}*${skip})+1) + int(rand()*2147483647)}")
       status=$(echo "$bg_file" | jq -r '.status')
       BG_ARGS+=(--bgFile "$file" "$freq" "$skip" "$status")
       STABLE_STATUSES="${STABLE_STATUSES} $((status+1))"
@@ -192,6 +204,7 @@ if [[ "$EXTENSION" == "hepmc3.tree.root" ]]; then
         --signalFile ${INPUT_FILE} \
         --signalFreq ${SIGNAL_FREQ:-0} \
         --signalStatus ${SIGNAL_STATUS:-0} \
+        --intWindow ${INTEGRATION_WINDOW} \
         "${BG_ARGS[@]}" \
         --outputFile ${FULL_TEMP}/${TASKNAME}.hepmc3.tree.root
 

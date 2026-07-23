@@ -349,7 +349,7 @@ if __name__ == "__main__":
     try:
         upload_client.upload(upload_items)
         logger.info("Upload completed successfully!")
-    except (NoFilesUploaded, NotAllFilesUploaded) as e:
+    except Exception as e:
         logger.error(f"Upload failed: {e}")
         
         dids = [{'scope': scope, 'name': did_name} for did_name in did_names]

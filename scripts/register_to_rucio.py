@@ -22,7 +22,7 @@ import os
 import random
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, dict, list, Optional, Sequence, Tuple
 
 from jsonschema import validate as json_validate, ValidationError
 
@@ -214,7 +214,7 @@ METADATA_SCHEMA = {
 }
 
 
-def validate_metadata(metadata: Dict[str, Any]) -> bool:
+def validate_metadata(metadata: dict[str, Any]) -> bool:
     """Validate a metadata dict against METADATA_SCHEMA.
 
     Args:
@@ -235,7 +235,7 @@ def validate_metadata(metadata: Dict[str, Any]) -> bool:
     return True
 
 
-def load_metadata_file(filepath: str) -> Dict[str, Any]:
+def load_metadata_file(filepath: str) -> dict[str, Any]:
     """Load and validate dataset metadata from a JSON file.
 
     Args:
@@ -363,11 +363,11 @@ def _account_remaining_bytes(client: Client, account: str, rse: str) -> Optional
 
 def _rank_by_capacity(
     client: Client,
-    rses: List[str],
+    rses: list[str],
     select: str,
     account: Optional[str],
     logger: logging.Logger,
-) -> List[str]:
+) -> list[str]:
     """Order RSEs largest-capacity-first.
 
     Unknown-capacity RSEs sort last but remain (so they can still serve as
@@ -388,7 +388,7 @@ def _rank_by_capacity(
     if select == "random" or len(rses) <= 1:
         random.shuffle(rses)
         return rses
-    scores: Dict[str, float] = {}
+    scores: dict[str, float] = {}
     for rse in rses:
         try:
             value = (_account_remaining_bytes(client, account, rse) if select == "quota"
@@ -409,7 +409,7 @@ def resolve_target_rses(
     logger: logging.Logger,
     select: str = "free",
     account: Optional[str] = None,
-) -> List[str]:
+) -> list[str]:
     """Resolve an RSE expression to an ordered list of usable RSEs.
 
     Keeps only writable, deterministic RSEs (manual registration needs no PFN
@@ -431,7 +431,7 @@ def resolve_target_rses(
     rses = [r["rse"] for r in client.list_rses(rse_expression)]
     if not rses:
         raise InvalidRSEExpression(f"'{rse_expression}' resolved to no RSEs")
-    good: List[str] = []
+    good: list[str] = []
     for rse in rses:
         try:
             info = client.get_rse(rse)
@@ -633,7 +633,7 @@ def register_and_attach(
     """
     already_exists = (DataIdentifierAlreadyExists, DuplicateContent,
                       FileAlreadyExists, FileReplicaAlreadyExists)
-    did: Dict[str, Any] = {"scope": scope, "name": did_name,
+    did: dict[str, Any] = {"scope": scope, "name": did_name,
                            "bytes": bytes_, "adler32": adler32_}
     if md5_:
         did["md5"] = md5_
@@ -657,7 +657,7 @@ def ensure_dataset(
     client: Client,
     scope: str,
     name: str,
-    meta: Optional[Dict[str, Any]],
+    meta: Optional[dict[str, Any]],
     logger: logging.Logger,
 ) -> None:
     """Create the dataset if missing and set metadata only if not already present.
@@ -855,7 +855,7 @@ def main() -> int:
 
     if args.metadata_file and args.metadata_json:
         raise ValueError("Cannot specify both --upload-metadata and --metadata-json")
-    dataset_meta: Optional[Dict[str, Any]] = None
+    dataset_meta: Optional[dict[str, Any]] = None
     if args.metadata_file:
         dataset_meta = load_metadata_file(args.metadata_file)
     elif args.metadata_json:
@@ -882,8 +882,8 @@ def main() -> int:
     do_register = not args.noregister
 
     # Phase 1: upload only (no catalog writes). placed: (did, dataset, rse, bytes, adler32, md5)
-    placed: List[Tuple[str, str, str, int, str, str]] = []
-    failures: List[str] = []
+    placed: list[Tuple[str, str, str, int, str, str]] = []
+    failures: list[str] = []
     for i, (path, did) in enumerate(zip(args.file_paths, args.did_names)):
         dataset_name = os.path.dirname(did)
         if args.distribute == "spread":
@@ -921,7 +921,7 @@ def main() -> int:
         return 1 if failures else 0
 
     # Phase 2: per dataset, ensure it exists, then atomic register+attach, then one rule.
-    datasets: Dict[str, List[Tuple[str, str, int, str, str]]] = {}
+    datasets: dict[str, list[Tuple[str, str, int, str, str]]] = {}
     for did, dataset_name, rse, b, a, m in placed:
         datasets.setdefault(dataset_name, []).append((did, rse, b, a, m))
 

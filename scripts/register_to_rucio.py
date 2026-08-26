@@ -859,7 +859,6 @@ def main() -> int:
     parser.add_argument(
         "--attempt",
         default=os.environ.get("AttemptNr"),
-        required=True,
         type=int
         help="Attempt number appended to each file DID name before the extension "
              "(myfile.root -> myfile_<N>.root) so every retry writes a distinct "
@@ -881,8 +880,11 @@ def main() -> int:
     for did in args.did_names:
         if not os.path.dirname(did):
             raise ValueError(f"DID '{did}' has no parent dataset (expected 'dataset/filename').")
+    if args.attempt is None:
+        parser.error("--attempt is required (pass --attempt N or set $AttemptNr)")
 
-    did_names = [apply_attempt_suffix(d, attempt) for d in args.did_names]
+    did_names = [apply_attempt_suffix(d, str(args.attempt)) for d in args.did_names]
+
     if args.metadata_file and args.metadata_json:
         raise ValueError("Cannot specify both --upload-metadata and --metadata-json")
     dataset_meta: Optional[dict[str, Any]] = None

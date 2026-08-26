@@ -22,7 +22,7 @@ import os
 import random
 import sys
 import time
-from typing import Any, Callable, dict, list, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 from jsonschema import validate as json_validate, ValidationError
 
@@ -257,6 +257,26 @@ def load_metadata_file(filepath: str) -> dict[str, Any]:
         raise ValueError(f"Invalid JSON in metadata file: {e}")
     validate_metadata(metadata)
     return metadata
+
+
+def apply_attempt_suffix(did_name: str, attempt: str) -> str:
+    """Insert an attempt-number suffix before the file extension.
+ 
+    e.g. 'RECO/dir/myfile.root', '2' -> 'RECO/dir/myfile_2.root'. Each attempt
+    maps to a distinct DID and deterministic PFN, so a dark leftover from a
+    failed prior attempt can never be adopted (skipped-over) by a later one.
+ 
+    Args:
+        did_name: DID name ('dataset/filename').
+        attempt: Attempt number (string) to append.
+ 
+    Returns:
+        The DID name with '_<attempt>' inserted before the extension.
+    """
+    parent = os.path.dirname(did_name)
+    root, ext = os.path.splitext(os.path.basename(did_name))
+    new_base = f"{root}_{attempt}{ext}"
+    return f"{parent}/{new_base}" if parent else new_base
 
 
 def with_retries(
@@ -836,6 +856,15 @@ def main() -> int:
         default=None,
         help="Per-transfer timeout in seconds",
     )
+    parser.add_argument(
+        "--attempt",
+        default=os.environ.get("AttemptNr"),
+        required=True,
+        type=int
+        help="Attempt number appended to each file DID name before the extension "
+             "(myfile.root -> myfile_<N>.root) so every retry writes a distinct "
+             "DID and PFN. Defaults to $PanDA_AttemptNr.",
+    )
     args = parser.parse_args()
 
     logger = logging.getLogger("rucio_register")
@@ -853,6 +882,7 @@ def main() -> int:
         if not os.path.dirname(did):
             raise ValueError(f"DID '{did}' has no parent dataset (expected 'dataset/filename').")
 
+    did_names = [apply_attempt_suffix(d, attempt) for d in args.did_names]
     if args.metadata_file and args.metadata_json:
         raise ValueError("Cannot specify both --upload-metadata and --metadata-json")
     dataset_meta: Optional[dict[str, Any]] = None
@@ -884,7 +914,7 @@ def main() -> int:
     # Phase 1: upload only (no catalog writes). placed: (did, dataset, rse, bytes, adler32, md5)
     placed: list[Tuple[str, str, str, int, str, str]] = []
     failures: list[str] = []
-    for i, (path, did) in enumerate(zip(args.file_paths, args.did_names)):
+    for i, (path, did) in enumerate(zip(args.file_paths, did_names)):
         dataset_name = os.path.dirname(did)
         if args.distribute == "spread":
             k = i % len(candidates)

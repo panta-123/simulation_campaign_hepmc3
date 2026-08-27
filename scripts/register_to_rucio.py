@@ -49,6 +49,11 @@ from rucio.common.exception import (
 # Metadata plugin backing dataset custom tags in this deployment.
 DATASET_META_PLUGIN = "POSTGRES_JSON"
 
+# RSE selection: among probed RSEs, those within this fraction of the best
+# capacity are treated as equally acceptable and picked at random, so
+# concurrent jobs spread instead of all piling onto the single largest RSE.
+SELECT_ACCEPTABLE_FRACTION = 0.5
+
 # Errors worth retrying (transient) vs. errors that mean "already done" (ok).
 TRANSIENT_EXC: Tuple[type, ...] = (DatabaseException, RSEWriteBlocked)
 IDEMPOTENT_OK: Tuple[type, ...] = (
@@ -110,7 +115,7 @@ METADATA_SCHEMA = {
                 "H2",
                 "Ru96",
                 "Pb208",
-                "Pb207"                
+                "Pb207"
             ]
         },
         "data_level": {
@@ -259,26 +264,6 @@ def load_metadata_file(filepath: str) -> dict[str, Any]:
     return metadata
 
 
-def apply_attempt_suffix(did_name: str, attempt: str) -> str:
-    """Insert an attempt-number suffix before the file extension.
- 
-    e.g. 'RECO/dir/myfile.root', '2' -> 'RECO/dir/myfile_2.root'. Each attempt
-    maps to a distinct DID and deterministic PFN, so a dark leftover from a
-    failed prior attempt can never be adopted (skipped-over) by a later one.
- 
-    Args:
-        did_name: DID name ('dataset/filename').
-        attempt: Attempt number (string) to append.
- 
-    Returns:
-        The DID name with '_<attempt>' inserted before the extension.
-    """
-    parent = os.path.dirname(did_name)
-    root, ext = os.path.splitext(os.path.basename(did_name))
-    new_base = f"{root}_{attempt}{ext}"
-    return f"{parent}/{new_base}" if parent else new_base
-
-
 def with_retries(
     fn: Callable[[], Any],
     *,
@@ -388,11 +373,13 @@ def _rank_by_capacity(
     account: Optional[str],
     logger: logging.Logger,
 ) -> list[str]:
-    """Order RSEs largest-capacity-first.
+    """Order RSEs by capacity, randomizing among the acceptable top tier.
 
-    Unknown-capacity RSEs sort last but remain (so they can still serve as
-    failover); equal scores are broken randomly so a burst of jobs does not all
-    pick the single largest RSE.
+    Capacity gates the candidate set; chance picks within it, so concurrent jobs
+    spread across the roomy RSEs instead of all stampeding the single largest.
+    RSEs within SELECT_ACCEPTABLE_FRACTION of the best are returned in random
+    order; remaining known RSEs follow (largest first) as deeper failover;
+    unknown-capacity RSEs come last (shuffled).
 
     Args:
         client: Rucio client.
@@ -408,7 +395,8 @@ def _rank_by_capacity(
     if select == "random" or len(rses) <= 1:
         random.shuffle(rses)
         return rses
-    scores: dict[str, float] = {}
+    known: dict[str, float] = {}
+    unknown: list[str] = []
     for rse in rses:
         try:
             value = (_account_remaining_bytes(client, account, rse) if select == "quota"
@@ -416,11 +404,26 @@ def _rank_by_capacity(
         except Exception as e:
             logger.warning("Capacity probe failed for %s (%s) -> deprioritise", rse, e)
             value = None
-        scores[rse] = -1.0 if value is None else float(value)
+        if value is None:
+            unknown.append(rse)
+        else:
+            known[rse] = float(value)
         logger.info("RSE %s %s=%s", rse, select,
                     "unknown" if value is None else
                     ("unlimited" if value == float("inf") else int(value)))
-    return sorted(rses, key=lambda r: (scores[r], random.random()), reverse=True)
+    random.shuffle(unknown)
+    if not known:
+        random.shuffle(rses)
+        return rses
+    best = max(known.values())
+    threshold = best * SELECT_ACCEPTABLE_FRACTION
+    acceptable = [r for r, v in known.items() if v >= threshold]
+    rest = sorted((r for r in known if r not in set(acceptable)),
+                  key=lambda r: known[r], reverse=True)
+    random.shuffle(acceptable)
+    logger.info("Acceptable RSEs (%s within %.0f%% of best): %s",
+                select, SELECT_ACCEPTABLE_FRACTION * 100, acceptable)
+    return acceptable + rest + unknown
 
 
 def resolve_target_rses(
@@ -856,14 +859,6 @@ def main() -> int:
         default=None,
         help="Per-transfer timeout in seconds",
     )
-    parser.add_argument(
-        "--attempt",
-        default=os.environ.get("AttemptNr"),
-        type=int
-        help="Attempt number appended to each file DID name before the extension "
-             "(myfile.root -> myfile_<N>.root) so every retry writes a distinct "
-             "DID and PFN. Defaults to $PanDA_AttemptNr.",
-    )
     args = parser.parse_args()
 
     logger = logging.getLogger("rucio_register")
@@ -880,10 +875,7 @@ def main() -> int:
     for did in args.did_names:
         if not os.path.dirname(did):
             raise ValueError(f"DID '{did}' has no parent dataset (expected 'dataset/filename').")
-    if args.attempt is None:
-        parser.error("--attempt is required (pass --attempt N or set $AttemptNr)")
 
-    did_names = [apply_attempt_suffix(d, str(args.attempt)) for d in args.did_names]
 
     if args.metadata_file and args.metadata_json:
         raise ValueError("Cannot specify both --upload-metadata and --metadata-json")
@@ -916,7 +908,7 @@ def main() -> int:
     # Phase 1: upload only (no catalog writes). placed: (did, dataset, rse, bytes, adler32, md5)
     placed: list[Tuple[str, str, str, int, str, str]] = []
     failures: list[str] = []
-    for i, (path, did) in enumerate(zip(args.file_paths, did_names)):
+    for i, (path, did) in enumerate(zip(args.file_paths, args.did_names)):
         dataset_name = os.path.dirname(did)
         if args.distribute == "spread":
             k = i % len(candidates)
@@ -934,8 +926,8 @@ def main() -> int:
                 continue
 
         try:
-            rse = upload_file(upload_client, path=path, scope=args.scope, did_name=did,
-                              candidate_rses=order, logger=logger,
+            rse = upload_file(upload_client, path=path, scope=args.scope,
+                              did_name=did, candidate_rses=order, logger=logger,
                               max_attempts_per_rse=args.max_attempts_per_rse,
                               base_delay=args.base_delay,
                               transfer_timeout=args.transfer_timeout)

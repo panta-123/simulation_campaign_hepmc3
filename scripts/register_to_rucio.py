@@ -49,10 +49,10 @@ from rucio.common.exception import (
 # Metadata plugin backing dataset custom tags in this deployment.
 DATASET_META_PLUGIN = "POSTGRES_JSON"
 
-# RSE selection: among probed RSEs, those within this fraction of the best
-# capacity are treated as equally acceptable and picked at random, so
-# concurrent jobs spread instead of all piling onto the single largest RSE.
-SELECT_ACCEPTABLE_FRACTION = 0.5
+# RSE selection: an RSE at or above this used fraction (free space or account
+# quota) is considered full and dropped from the preferred pool; the remaining
+# RSEs are shuffled so concurrent jobs spread instead of piling onto one.
+RSE_FULL_THRESHOLD = 0.9
 
 # Errors worth retrying (transient) vs. errors that mean "already done" (ok).
 TRANSIENT_EXC: Tuple[type, ...] = (DatabaseException, RSEWriteBlocked)
@@ -313,34 +313,38 @@ def with_retries(
             time.sleep(delay)
 
 
-def _rse_free_bytes(client: Client, rse: str) -> Optional[int]:
-    """Return free bytes on ``rse``.
+def _rse_used_fraction(client: Client, rse: str) -> Optional[float]:
+    """Return the used fraction (0..1) of storage on ``rse``.
 
     Prefers the real backend 'storage' usage source and falls back to 'rucio'
-    (sum of registered replicas).
+    (sum of registered replicas). used_fraction = used / (used + free).
 
     Args:
         client: Rucio client.
         rse: RSE name.
 
     Returns:
-        Free bytes, or None if the RSE publishes no usable usage record.
+        Used fraction in [0, 1], or None if the RSE publishes no usable usage.
     """
     usages = {u.get("source"): u for u in client.get_rse_usage(rse)}
     for src in ("storage", "rucio"):
         u = usages.get(src)
         if not u:
             continue
-        free = u.get("free")
-        if free is None and u.get("total") is not None and u.get("used") is not None:
-            free = u["total"] - u["used"]
-        if free is not None:
-            return int(free)
+        used = u.get("used")
+        total = u.get("total")
+        if total is None and used is not None and u.get("free") is not None:
+            total = used + u["free"]
+        if used is not None and total:
+            return max(0.0, min(1.0, used / total))
     return None
 
 
-def _account_remaining_bytes(client: Client, account: str, rse: str) -> Optional[float]:
-    """Return the account's remaining quota on ``rse``.
+def _account_used_fraction(client: Client, account: str, rse: str) -> Optional[float]:
+    """Return the account's used fraction (0..1) of its quota on ``rse``.
+
+    used_fraction = used / limit. An account with no limit set (unlimited) is
+    never full, so returns 0.0.
 
     Args:
         client: Rucio client.
@@ -348,22 +352,26 @@ def _account_remaining_bytes(client: Client, account: str, rse: str) -> Optional
         rse: RSE name.
 
     Returns:
-        Remaining bytes (limit minus used); float('inf') if no limit is set
-        (unlimited); None if it cannot be determined.
+        Used fraction in [0, 1], 0.0 if unlimited, or None if undeterminable.
     """
     try:
         recs = list(client.get_local_account_usage(account, rse))
     except Exception:
         return None
     if recs:
-        rem = recs[0].get("bytes_remaining")
-        return float("inf") if rem is None else int(rem)
+        limit = recs[0].get("bytes_limit")
+        used = recs[0].get("bytes") or 0
+        if limit is None:
+            return 0.0
+        if limit == 0:
+            return 1.0
+        return max(0.0, min(1.0, used / limit))
     try:
         lim = client.get_local_account_limit(account, rse)
         b = lim.get(rse) if isinstance(lim, dict) else lim
-        return float("inf") if b is None else int(b)
+        return 0.0 if b is None else 0.0
     except Exception:
-        return float("inf")
+        return 0.0
 
 
 def _rank_by_capacity(
@@ -372,58 +380,57 @@ def _rank_by_capacity(
     select: str,
     account: Optional[str],
     logger: logging.Logger,
+    max_used: float = RSE_FULL_THRESHOLD,
 ) -> list[str]:
-    """Order RSEs by capacity, randomizing among the acceptable top tier.
+    """Drop near-full RSEs and shuffle the rest.
 
-    Capacity gates the candidate set; chance picks within it, so concurrent jobs
-    spread across the roomy RSEs instead of all stampeding the single largest.
-    RSEs within SELECT_ACCEPTABLE_FRACTION of the best are returned in random
-    order; remaining known RSEs follow (largest first) as deeper failover;
-    unknown-capacity RSEs come last (shuffled).
+    Any RSE at or above RSE_FULL_THRESHOLD used (storage free space for 'free',
+    account quota for 'quota') is considered full and demoted to failover; the
+    RSEs with room are returned in random order so concurrent jobs spread instead
+    of all picking the same one. Near-full RSEs are kept last (least-full first)
+    rather than dropped outright, so uploads still have a target if every roomy
+    RSE is unavailable; unknown-utilisation RSEs come last (shuffled).
 
     Args:
         client: Rucio client.
         rses: Candidate RSE names.
-        select: 'free' (RSE free space), 'quota' (account remaining quota), or
-            'random' (shuffle).
+        select: 'free' (RSE free space), 'quota' (account quota), or 'random'.
         account: Account name, required for 'quota'.
-        logger: Logger for the probed capacities.
+        logger: Logger for the probed utilisation.
+        max_used: Used fraction at/above which an RSE is treated as full.
 
     Returns:
-        The RSEs ordered by descending capacity (or shuffled for 'random').
+        The ordered list of RSE names.
     """
     if select == "random" or len(rses) <= 1:
         random.shuffle(rses)
         return rses
-    known: dict[str, float] = {}
+    used: dict[str, float] = {}
     unknown: list[str] = []
     for rse in rses:
         try:
-            value = (_account_remaining_bytes(client, account, rse) if select == "quota"
-                     else _rse_free_bytes(client, rse))
+            frac = (_account_used_fraction(client, account, rse) if select == "quota"
+                    else _rse_used_fraction(client, rse))
         except Exception as e:
-            logger.warning("Capacity probe failed for %s (%s) -> deprioritise", rse, e)
-            value = None
-        if value is None:
+            logger.warning("Utilisation probe failed for %s (%s) -> deprioritise", rse, e)
+            frac = None
+        if frac is None:
             unknown.append(rse)
         else:
-            known[rse] = float(value)
-        logger.info("RSE %s %s=%s", rse, select,
-                    "unknown" if value is None else
-                    ("unlimited" if value == float("inf") else int(value)))
+            used[rse] = frac
+        logger.info("RSE %s %s used=%s", rse, select,
+                    "unknown" if frac is None else f"{frac:.0%}")
     random.shuffle(unknown)
-    if not known:
+    if not used:
         random.shuffle(rses)
         return rses
-    best = max(known.values())
-    threshold = best * SELECT_ACCEPTABLE_FRACTION
-    acceptable = [r for r, v in known.items() if v >= threshold]
-    rest = sorted((r for r in known if r not in set(acceptable)),
-                  key=lambda r: known[r], reverse=True)
-    random.shuffle(acceptable)
-    logger.info("Acceptable RSEs (%s within %.0f%% of best): %s",
-                select, SELECT_ACCEPTABLE_FRACTION * 100, acceptable)
-    return acceptable + rest + unknown
+    roomy = [r for r, u in used.items() if u < max_used]
+    full = sorted((r for r in used if used[r] >= max_used), key=lambda r: used[r])
+    random.shuffle(roomy)
+    if full:
+        logger.info("Excluded near-full RSEs (>= %.0f%% used): %s",
+                    max_used * 100, full)
+    return roomy + full + unknown
 
 
 def resolve_target_rses(
@@ -432,6 +439,7 @@ def resolve_target_rses(
     logger: logging.Logger,
     select: str = "free",
     account: Optional[str] = None,
+    max_used: float = RSE_FULL_THRESHOLD,
 ) -> list[str]:
     """Resolve an RSE expression to an ordered list of usable RSEs.
 
@@ -444,6 +452,7 @@ def resolve_target_rses(
         logger: Logger for skipped RSEs and capacities.
         select: Capacity metric for ordering ('free', 'quota', or 'random').
         account: Account name, used when select == 'quota'.
+        max_used: Used fraction at/above which an RSE is treated as full.
 
     Returns:
         Ordered list of candidate RSE names.
@@ -470,7 +479,7 @@ def resolve_target_rses(
         good.append(rse)
     if not good:
         raise InvalidRSEExpression(f"'{rse_expression}' -> no writable deterministic RSEs")
-    return _rank_by_capacity(client, good, select, account, logger)
+    return _rank_by_capacity(client, good, select, account, logger, max_used)
 
 
 class ChecksumConflict(RuntimeError):
@@ -515,6 +524,74 @@ def existing_did_matches(
             f"adler32={meta.get('adler32')} but local file is bytes={bytes_} "
             f"adler32={adler32_}; refusing (checksum/size conflict).")
     return True
+
+
+def did_has_available_replica(client: Client, scope: str, name: str) -> bool:
+    """Return True if the DID exists with at least one AVAILABLE replica.
+
+    This is the "predecessor delivered it" test: on a same-name retry, an
+    AVAILABLE replica means a prior attempt already uploaded and registered the
+    file, so this attempt should exit success without uploading.
+
+    Args:
+        client: Rucio client.
+        scope: DID scope.
+        name: File DID name.
+
+    Returns:
+        True if a replica in state AVAILABLE exists for the DID.
+    """
+    try:
+        replicas = list(client.list_replicas([{"scope": scope, "name": name}],
+                                             all_states=True))
+    except DataIdentifierNotFound:
+        return False
+    if not replicas:
+        return False
+    states = replicas[0].get("states", {})
+    return any(state == "AVAILABLE" for state in states.values())
+
+
+def remote_file_exists(
+    client: Client,
+    rse: str,
+    scope: str,
+    name: str,
+    logger: logging.Logger,
+) -> bool:
+    """Return True if a physical file for scope:name is present on ``rse``.
+
+    Uses the deterministic path and a read (download) token. On any error the
+    result is unknown and reported as False, deferring to the upload client's own
+    existence check.
+
+    Args:
+        client: Rucio client.
+        rse: RSE name.
+        scope: DID scope.
+        name: DID name.
+        logger: Logger for probe failures.
+
+    Returns:
+        True if the file exists on storage, False if absent or undeterminable.
+    """
+    try:
+        rse_settings = rsemgr.get_rse_info(rse, vo=client.vo)
+    except Exception as e:
+        logger.warning("Cannot read RSE info for %s (%s); assuming no leftover", rse, e)
+        return False
+    try:
+        token = client.get_download_token(rse)
+    except Exception:
+        token = None
+    try:
+        return bool(rsemgr.exists(rse_settings, {"scope": scope, "name": name},
+                                  domain="wan", auth_token=token, vo=client.vo,
+                                  logger=logger.log))
+    except Exception as e:
+        logger.warning("exists() check failed for %s:%s @ %s (%s); assuming no leftover",
+                       scope, name, rse, e)
+        return False
 
 
 def physical_delete(
@@ -563,6 +640,7 @@ def physical_delete(
 
 def upload_file(
     upload_client: UploadClient,
+    client: Client,
     *,
     path: str,
     scope: str,
@@ -580,6 +658,7 @@ def upload_file(
 
     Args:
         upload_client: Configured UploadClient.
+        client: Rucio client (for dark-leftover checks/removal).
         path: Local file path.
         scope: DID scope.
         did_name: DID name ('dataset/filename').
@@ -597,6 +676,17 @@ def upload_file(
     """
     last_err: Optional[Exception] = None
     for rse in candidate_rses:
+        # Same-name retry with non-deterministic output: any file already on this
+        # RSE has no AVAILABLE replica (checked by the caller) so it is a dark
+        # leftover with possibly different bytes. The no_register upload would
+        # skip over it and we would register stale bytes, so remove it first; if
+        # it cannot be removed, skip this RSE rather than risk adopting it.
+        if remote_file_exists(client, rse, scope, did_name, logger):
+            logger.warning("Dark leftover %s:%s on %s -> deleting before upload",
+                           scope, did_name, rse)
+            if not physical_delete(client, rse, scope, did_name, logger):
+                logger.error("Could not remove leftover on %s -> skip RSE", rse)
+                continue
         for attempt in range(1, max_attempts_per_rse + 1):
             item = {"path": path, "rse": rse, "did_scope": scope,
                     "did_name": did_name, "no_register": True}
@@ -813,8 +903,16 @@ def main() -> int:
         "--select",
         choices=["free", "quota", "random"],
         default="free",
-        help="RSE priority when several resolve: free = most RSE free space; "
-             "quota = most remaining account quota; random = shuffle",
+        help="How to pick among several resolved RSEs: free = by storage free "
+             "space; quota = by account quota; random = shuffle. free/quota drop "
+             "RSEs at/above --select-max-used and shuffle the rest.",
+    )
+    parser.add_argument(
+        "--select-max-used",
+        type=float,
+        default=RSE_FULL_THRESHOLD,
+        help="Used fraction (0-1) at/above which an RSE is treated as full and "
+             f"demoted to failover. Default: {RSE_FULL_THRESHOLD}.",
     )
     parser.add_argument(
         "--grouping",
@@ -896,11 +994,15 @@ def main() -> int:
             "consolidate all files onto one RSE -> many transfers "
             "(use --grouping NONE or --distribute pack)")
 
+    if not 0.0 < args.select_max_used <= 1.0:
+        parser.error("--select-max-used must be in (0, 1]")
+
     client = Client()
     upload_client = UploadClient(_client=client, logger=logger)
 
     candidates = resolve_target_rses(client, args.rse, logger,
-                                     select=args.select, account=client.account)
+                                     select=args.select, account=client.account,
+                                     max_used=args.select_max_used)
     logger.info("RSE expression '%s' -> %s", args.rse, candidates)
 
     do_register = not args.noregister
@@ -916,17 +1018,17 @@ def main() -> int:
         else:
             order = candidates
 
-        if do_register:
-            try:
-                existing_did_matches(client, args.scope, did,
-                                     os.stat(path).st_size, adler32(path))
-            except ChecksumConflict as e:
-                logger.error("FAILED file %s: %s", did, e)
-                failures.append(did)
-                continue
+        # Same-name retry (PCS regenerates the same DID): if a predecessor already
+        # delivered this file -- registered with an AVAILABLE replica -- succeed
+        # without uploading. Otherwise upload_file() cleans any dark leftover on
+        # the target RSE before writing.
+        if do_register and did_has_available_replica(client, args.scope, did):
+            logger.info("%s already delivered by a predecessor (available replica) "
+                        "-> skip upload", did)
+            continue
 
         try:
-            rse = upload_file(upload_client, path=path, scope=args.scope,
+            rse = upload_file(upload_client, client, path=path, scope=args.scope,
                               did_name=did, candidate_rses=order, logger=logger,
                               max_attempts_per_rse=args.max_attempts_per_rse,
                               base_delay=args.base_delay,
